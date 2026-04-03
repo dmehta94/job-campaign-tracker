@@ -6,10 +6,10 @@ CREATE TABLE IF NOT EXISTS orgs (
     name TEXT NOT NULL,
     website TEXT,
     careers_url TEXT,
-    category TEXT CHECK (category IN ("Civic Tech", "Mission Aligned", "Research & Policy", "Enforcement & Accountability")),
+    category TEXT CHECK (category IN ('Civic Tech', 'Mission Aligned', 'Research & Policy', 'Enforcement & Accountability')),
     lamp_list INTEGER CHECK (lamp_list IN (0,1)),
     notes TEXT,
-    created_date TEXT DEFAULT date('now')
+    created_date TEXT DEFAULT CURRENT_DATE
 );
 
 /* Contacts table
@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS contacts (
     platform TEXT,
     contact_value TEXT,
     capacity TEXT,
-    status TEXT NOT NULL CHECK (status IN ("Contacted", "Response Received", "Never Responded", "Referred and Recommended", "Declined")) DEFAULT "Contacted",
+    status TEXT NOT NULL CHECK (status IN ('Contacted', 'Response Received', 'Never Responded', 'Referred and Recommended', 'Declined')) DEFAULT 'Contacted',
     next_follow_up_date TEXT,
     notes TEXT,
-    created_date TEXT DEFAULT date('now')
+    created_date TEXT DEFAULT CURRENT_DATE
 );
 
 /* Interactions table
@@ -34,7 +34,7 @@ Add Google-style docstring here in post
 CREATE TABLE IF NOT EXISTS interactions (
     id INTEGER PRIMARY KEY,
     contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
-    interaction_type TEXT NOT NULL DEFAULT "Outreach Established",
+    interaction_type TEXT NOT NULL CHECK (interaction_type IN ('Outreach Established', 'Informational Interview', 'Referral Received', 'Coffee Chat', 'Reconnect')) DEFAULT 'Outreach Established',
     notes TEXT,
     date TEXT NOT NULL
 );
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS applications (
     role_title TEXT NOT NULL, 
     job_url TEXT,
     date_applied TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ("Applied", "ATS Screened", "Recruiter Screened", "Technical Screened", "Interviewed", "Offered", "Accepted", "Rejected by Org", "Rejected Offer")) DEFAULT "Applied",
+    status TEXT NOT NULL CHECK (status IN ('Applied', 'ATS Screened', 'Recruiter Screened', 'Technical Screened', 'Interviewed', 'Offered', 'Accepted', 'Rejected by Org', 'Rejected Offer')) DEFAULT 'Applied',
     referral_contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
     follow_up_date TEXT,
     notes TEXT
