@@ -50,4 +50,24 @@
     <input type="text" name="notes">
     <button type="submit">Update</button>
 </form>
+
+<h2>Interaction History</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for interaction in history %}
+        <tr>
+            <td>{{ interaction['date'] }}</td>
+            <td>{{ interaction['interaction_type'] }}</td>
+            <td>{{ interaction['notes'] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

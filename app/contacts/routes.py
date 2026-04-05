@@ -71,7 +71,18 @@ def contact_detail(id):
         ''',
         (id,)
     ).fetchone()
-    return render_template('contacts/detail.html', contact=details)
+
+    history = db.execute(
+        '''
+        SELECT *
+        FROM interactions
+        WHERE contact_id = ?
+        ORDER BY date DESC
+        ''',
+        (id,)
+    ).fetchall()
+    
+    return render_template('contacts/detail.html', contact=details, history=history)
 
 @contacts_bp.route('/contacts/<int:id>/interact', methods=['POST'])
 def interaction_log(id):
