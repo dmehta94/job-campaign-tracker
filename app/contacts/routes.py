@@ -54,3 +54,21 @@ def add_contact():
         return redirect(url_for('contacts.list_contacts'))
     else:
         return render_template('contacts/add.html')
+    
+@contacts_bp.route('/contacts/<int:id>')
+def contact_detail(id):
+    db = get_db()
+
+    details = db.execute(
+        '''
+        SELECT
+            c.*,
+            o.name AS org_name
+        FROM contacts AS c
+        LEFT JOIN orgs AS o
+        ON c.org_id = o.id
+        WHERE c.id = ?
+        ''',
+        (id,)
+    ).fetchone()
+    return render_template('contacts/detail.html', contact=details)
