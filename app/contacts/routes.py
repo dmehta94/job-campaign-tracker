@@ -88,6 +88,18 @@ def interaction_log(id):
         (id, interaction_type, notes, date)
     )
 
+    if interaction_type == 'Referral Received':
+        new_status = 'Referred and Recommended'
+    else:
+        new_status = 'Response Received'
+
+    db.execute(
+        '''
+        UPDATE contacts SET status = ? WHERE id = ?
+        ''',
+        (new_status, id)
+    )
+    
     db.commit()
 
     return redirect(url_for('contacts.contact_detail', id=id))
