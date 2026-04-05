@@ -14,7 +14,7 @@
     <dd>{{ contact[field] }}</dd>
     {% endfor %}
 </dl>
-
+<h2>Log Interaction</h2>
 <form action="/contacts/{{ contact.id }}/interact" method="post">
     <label>Date</label>
     <input type="date" name="date">
@@ -29,5 +29,25 @@
     <label>Notes</label>
     <input type="text" name="notes">
     <button type="submit">Save</button>
+</form>
+
+<h2>Edit Contact</h2>
+<form action="/contacts/{{ contact.id }}/edit" method="post">
+    <label>Status</label>
+    <select name="status">
+        <option value="Contacted" {% if contact.status=='Contacted' %}selected{% endif %}>Contacted</option>
+        <option value="Response Received" {% if contact.status=='Response Received' %}selected{% endif %}>Response
+            Received</option>
+        <option value="Referred and Recommended" {% if contact.status=='Referred and Recommended' %}selected{% endif %}>
+            Referred and Recommended</option>
+        <option value="Declined" {% if contact.status=='Declined' %}selected{% endif %}>Declined</option>
+        <option value="Never Responded" {% if contact.status=='Never Responded' %}selected{% endif %}>Never Responded
+        </option>
+    </select>
+    <label>Next Follow-Up</label>
+    <input type="date" name="next_follow_up_date" value="{{ contact.next_follow_up_date }}">
+    <label>Additional Notes</label>
+    <input type="text" name="notes">
+    <button type="submit">Update</button>
 </form>
 {% endblock %}

@@ -103,3 +103,40 @@ def interaction_log(id):
     db.commit()
 
     return redirect(url_for('contacts.contact_detail', id=id))
+
+@contacts_bp.route('/contacts/<int:id>/edit', methods=['POST'])
+def edit_contact(id):
+    status = request.form['status']
+    next_follow_up_date = request.form['next_follow_up_date']
+    notes = request.form['notes']
+
+    db = get_db()
+    existing = db.execute(
+        '''
+        SELECT notes
+        FROM contacts
+        WHERE id = ?
+        ''',
+        (id,)
+    ).fetchone()
+
+    if existing['notes'] is None:
+        new_notes = notes
+    else:
+        new_notes = existing['notes'] + notes
+
+    db.execute(
+        '''
+        UPDATE contacts
+        SET 
+            status = ?,
+            next_follow_up_date = ?,
+            notes = ?
+        WHERE id = ?
+            ''',
+            (status, next_follow_up_date, new_notes, id)
+    )
+
+    db.commit()
+    return redirect(url_for('contacts.contact_detail', id=id))
+
