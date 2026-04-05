@@ -14,4 +14,20 @@
     <dd>{{ contact[field] }}</dd>
     {% endfor %}
 </dl>
+
+<form action="/contacts/{{ contact.id }}/interact" method="post">
+    <label>Date</label>
+    <input type="date" name="date">
+    <label>Interaction Type</label>
+    <select name="interaction_type">
+        <option value="Outreach Established">Outreach Established</option>
+        <option value="Informational Interview">Informational Interview</option>
+        <option value="Referral Received">Referral Received</option>
+        <option value="Coffee Chat">Coffee Chat</option>
+        <option value="Reconnect">Reconnect</option>
+    </select>
+    <label>Notes</label>
+    <input type="text" name="notes">
+    <button type="submit">Save</button>
+</form>
 {% endblock %}

@@ -72,3 +72,22 @@ def contact_detail(id):
         (id,)
     ).fetchone()
     return render_template('contacts/detail.html', contact=details)
+
+@contacts_bp.route('/contacts/<int:id>/interact', methods=['POST'])
+def interaction_log(id):
+    interaction_type = request.form['interaction_type']
+    notes = request.form['notes']
+    date = request.form['date']
+
+    db = get_db()
+
+    db.execute(
+        '''
+        INSERT INTO interactions (contact_id, interaction_type, notes, date) VALUES (?, ?, ?, ?)
+        ''',
+        (id, interaction_type, notes, date)
+    )
+
+    db.commit()
+
+    return redirect(url_for('contacts.contact_detail', id=id))
