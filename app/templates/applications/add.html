@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Enter a New Application{% endblock %}
+
+{% block content %}
+<form method="post">
+    <label>Submission Date</label>
+    <input type="date" name="app_submitted">
+    <label>Organization</label>
+    <input type="text" name="org_name">
+    <label>Role</label>
+    <input type="text" name="role">
+    <label>Application Link</label>
+    <input type="text" name="url">
+    <label>Referred</label>
+    <select name="referral_contact_id">
+        <option value="">---Select---</option>
+        {% for row in ref_info %}
+        <option value="{{ row.id}}">{{ row.name }}</option>
+        {% endfor %}
+    </select>
+    <label>Status</label>
+    <select name="status">
+        <option value="Applied" selected>Applied</option>
+        <option value="ATS Screened">ATS Screened</option>
+        <option value="Recruiter Screened">Recruiter Screened</option>
+        <option value="Technical Screened">Technical Screened</option>
+        <option value="Interviewed">Interviewed</option>
+        <option value="Offered">Offered</option>
+        <option value="Accepted">Accepted</option>
+        <option value="Rejected by Org">Rejected by Org</option>
+        <option value="Rejected Offer">Rejected Offer</option>
+    </select>
+    <label>Follow-Up Date</label>
+    <input type="date" name="follow_up_date">
+    <label>Notes</label>
+    <input type="text" name="notes">
+    <button type="submit">Save</button>
+</form>
+{% endblock %}
