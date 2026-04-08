@@ -21,4 +21,24 @@ def index():
     ).fetchone()[0]
     print(f'Referrals Received: {referred}')
 
-    return render_template('dashboard/index.html', num_apps = num_apps, progress = progress, referred = referred)
+    follow_ups = db.execute(
+        '''
+        WITH follow_up_data AS (
+            SELECT
+                c.id,
+                c.name,
+                o.name AS org_name,
+                c.next_follow_up_date,
+                julianday(next_follow_up_date) - julianday('now') AS days_until_followup
+            FROM contacts AS c
+            LEFT JOIN orgs AS o
+            ON c.org_id = o.id
+            )
+        SELECT *
+        FROM follow_up_data
+        WHERE (days_until_followup >= 0) AND (days_until_followup <= 7);
+        '''
+    ).fetchall()
+
+
+    return render_template('dashboard/index.html', num_apps = num_apps, progress = progress, referred = referred, follow_ups = follow_ups)

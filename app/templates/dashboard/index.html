@@ -7,4 +7,26 @@
 <p>Applications Submitted: {{num_apps}}</p>
 <p>Applications Progressed to Interview: {{progress}}</p>
 <p>Referrals Received: {{referred}}</p>
+
+<h2>Pending Follow-Ups</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Contact</th>
+            <th>Organization</th>
+            <th>Follow-Up Date</th>
+            <th>Days Remaining</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in follow_ups %}
+        <tr>
+            <td>{{ entry.name }}</td>
+            <td>{{ entry.org_name }}</td>
+            <td>{{ entry.next_follow_up_date }}</td>
+            <td>{{ entry.days_until_followup | round | int }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
