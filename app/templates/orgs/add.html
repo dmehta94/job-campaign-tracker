@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Enter a New Organization{% endblock %}
+
+
+{% block content %}
+{% for message in get_flashed_messages() %}
+<p>{{ message }}</p>
+{% endfor %}
+
+<form method="post">
+    <label>Organization</label>
+    <input type="text" name="name" required>
+    <label>Careers Page</label>
+    <input type="text" name="careers_url">
+    <label>Category</label>
+    <select name="category">
+        <option value="Civic Tech">Civic Tech</option>
+        <option value="Mission-Aligned">Mission-Aligned</option>
+        <option value="Research & Policy">Research & Policy</option>
+        <option value="Enforcement Analytics">Enforcement Analytics</option>
+    </select>
+    <label>LAMP List</label>
+    <select name="lamp_list">
+        <option value="Y">Yes</option>
+        <option value="N">No</option>
+    </select>
+    <label>Notes</label>
+    <input type="text" name="notes">
+    <button type="submit">Save</button>
+</form>
+{% endblock %}
