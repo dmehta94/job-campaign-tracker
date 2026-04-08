@@ -4,6 +4,7 @@ from config import config
 from .dashboard import dashboard_bp
 from .contacts import contacts_bp
 from .applications import applications_bp
+from .orgs import orgs_bp
 from .database import close_db
 
 # Define create_app function
@@ -15,5 +16,6 @@ def create_app(config_name='development'):
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(contacts_bp)
     app.register_blueprint(applications_bp)
+    app.register_blueprint(orgs_bp)
     app.teardown_appcontext(close_db)
     return app
