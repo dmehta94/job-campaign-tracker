@@ -98,3 +98,22 @@ def application_detail(id):
         (id,)
     ).fetchone()
     return render_template('applications/detail.html', application=details)
+
+@applications_bp.route('/applications/<int:id>/edit', methods=['POST'])
+def edit_application(id):
+    status = request.form['status']
+    follow_up_date = request.form['follow_up_date']
+
+    db = get_db()
+    db.execute(
+        '''
+        UPDATE applications
+        SET
+            status = ?,
+            follow_up_date = ?
+        WHERE id = ?
+        ''', (status, follow_up_date, id)
+    )
+
+    db.commit()
+    return redirect(url_for('applications.application_detail', id=id))
