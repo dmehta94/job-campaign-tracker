@@ -4,7 +4,6 @@ Add Google-style docstring here in post
 CREATE TABLE IF NOT EXISTS orgs (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    website TEXT,
     careers_url TEXT,
     category TEXT CHECK (category IN ('Civic Tech', 'Mission Aligned', 'Research & Policy', 'Enforcement & Accountability')),
     lamp_list INTEGER CHECK (lamp_list IN (0,1)),
