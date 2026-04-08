@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Details for {{ application.org_name }} - {{ application.role }}{% endblock %}
+
+{% block content %}
+{% set fields = [
+('app_submitted','Submission Date'), ('org_name', 'Organization'), ('role', 'Role'), ('url', 'Application Link'),
+('contact_name', 'Referring Contact'), ('status', 'Status'), ('follow_up_date', 'Follow-Up Date'), ('notes', 'Notes')
+]
+%}
+
+<dl>
+    {% for field, label in fields %}
+    <dt>{{ label }}</dt>
+    <dd>{{ application[field] }}</dd>
+    {% endfor %}
+</dl>
+
+<h2>Edit Application</h2>
+<form action="/applications/{{ application.id }}/edit" method="post">
+    <label>Status</label>
+    <select name="status">
+        <option value="Applied" {% if application.status=='Applied' %}selected{% endif %}>Applied</option>
+        <option value="ATS Screened" {% if application.status=='ATS Screened' %}selected{% endif %}>ATS Screened
+        </option>
+        <option value="Recruiter Screened" {% if application.status=='Recruiter Screened' %}selected{% endif %}>
+            Recruiter Screened</option>
+        <option value="Technical Screened" {% if application.status=='Technical Screened' %}selected{% endif %}>
+            Technical Screened</option>
+        <option value="Interviewed" {% if application.status=='Interviewed' %}selected{% endif %}>Interviewed</option>
+        <option value="Offered" {% if application.status=='Offered' %}selected{% endif %}>Offered</option>
+        <option value="Accepted" {% if application.status=='Accepted' %}selected{% endif %}>Accepted</option>
+        <option value="Rejected by Org" {% if application.status=='Rejected by Org' %}selected{% endif %}>Rejected by
+            Org</option>
+        <option value="Rejected Offer" {% if application.status=='Rejected Offer' %}selected{% endif %}>Rejected Offer
+        </option>
+    </select>
+    <label>Next Follow-Up</label>
+    <input type="date" name="follow_up_date" value="{{ application.follow_up_date }}">
+    <button type="submit">Update</button>
+</form>
+{% endblock %}

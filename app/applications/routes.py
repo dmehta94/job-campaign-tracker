@@ -71,3 +71,30 @@ def add_application():
             ("Referred and Recommended",)
         ).fetchall()
         return render_template('applications/add.html', ref_info = ref_info)
+    
+@applications_bp.route('/applications/<int:id>')
+def application_detail(id):
+    db = get_db()
+
+    details = db.execute(
+        '''
+        SELECT
+            a.id AS id,
+            a.date_applied AS app_submitted,
+            o.name AS org_name,
+            a.role_title AS role,
+            a.job_url AS url,
+            c.name as contact_name,
+            a.status AS status,
+            a.follow_up_date AS follow_up_date,
+            a.notes AS notes
+        FROM applications AS a
+        INNER JOIN orgs AS o
+        ON a.org_id = o.id
+        LEFT JOIN contacts AS c
+        ON a.referral_contact_id = c.id
+        WHERE a.id = ?
+        ''',
+        (id,)
+    ).fetchone()
+    return render_template('applications/detail.html', application=details)
