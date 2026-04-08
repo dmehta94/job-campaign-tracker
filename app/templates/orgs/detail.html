@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Details for {{ org.name }}{% endblock %}
+
+{% block content %}
+{% set fields = [
+    ('name', 'Organization'), ('careers_url', 'Careers Page'),
+    ('category', 'Category'), ('lamp_list', 'LAMP List'),
+    ('notes', 'Notes'), ('created_date', 'Date Created')
+] %}
+
+<dl>
+    {% for field, label in fields %}
+    <dt>{{ label }}</dt>
+    <dd>{{ org[field] }}</dd>
+    {% endfor %}
+</dl>
+
+{% endblock %}
