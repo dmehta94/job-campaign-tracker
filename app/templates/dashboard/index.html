@@ -71,4 +71,22 @@
         {% endfor %}
     </tbody>
 </table>
+
+<h2>Organizations Ranked by Interaction Volume</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Organization</th>
+            <th>Interaction Volume</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in org_rankings %}
+        <tr>
+            <td>{{ entry.org_name }}</td>
+            <td>{{ entry.number_of_interactions }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

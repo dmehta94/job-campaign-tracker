@@ -69,4 +69,36 @@ def index():
         '''
     ).fetchall()
 
-    return render_template('dashboard/index.html', num_apps = num_apps, progress = progress, referred = referred, follow_ups = follow_ups, active_conversations = active_conversations, apps_pipeline = apps_pipeline)
+    org_rankings = db.execute(
+        '''
+        WITH interactions_by_org AS (
+            SELECT
+                o.name AS org_name,
+                COUNT(i.id) AS number_of_interactions
+            FROM interactions AS i
+            LEFT JOIN contacts AS c
+                ON i.contact_id = c.id
+            LEFT JOIN orgs AS o
+                ON c.org_id = o.id
+            GROUP BY o.id
+            )
+        SELECT
+            org_name,
+            number_of_interactions,
+            RANK() OVER (
+                ORDER BY number_of_interactions DESC
+                ) AS rank
+        FROM interactions_by_org
+        '''
+        ).fetchall()
+    
+    return render_template(
+        'dashboard/index.html',
+        num_apps = num_apps,
+        progress = progress,
+        referred = referred,
+        follow_ups = follow_ups,
+        active_conversations = active_conversations,
+        apps_pipeline = apps_pipeline,
+        org_rankings = org_rankings
+        )
