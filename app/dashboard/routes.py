@@ -54,4 +54,19 @@ def index():
         '''
     ).fetchall()
 
-    return render_template('dashboard/index.html', num_apps = num_apps, progress = progress, referred = referred, follow_ups = follow_ups)
+    apps_pipeline = db.execute(
+        '''
+        SELECT
+            a.id,
+            a.date_applied AS app_submitted,
+            o.name AS org_name,
+            a.role_title AS role,
+            a.status
+        FROM applications AS a
+        LEFT JOIN orgs AS o
+        ON a.org_id = o.id
+        ORDER BY app_submitted DESC
+        '''
+    ).fetchall()
+
+    return render_template('dashboard/index.html', num_apps = num_apps, progress = progress, referred = referred, follow_ups = follow_ups, active_conversations = active_conversations, apps_pipeline = apps_pipeline)

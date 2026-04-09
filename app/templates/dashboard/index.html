@@ -49,4 +49,26 @@
         {% endfor %}
     </tbody>
 </table>
+
+<h2>Applications Pipeline</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Submission Date</th>
+            <th>Organization</th>
+            <th>Role</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in apps_pipeline %}
+        <tr>
+            <td>{{ entry.app_submitted }}</td>
+            <td>{{ entry.org_name }}</td>
+            <td>{{ entry.role }}</td>
+            <td>{{ entry.status }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
