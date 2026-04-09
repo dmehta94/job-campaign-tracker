@@ -40,5 +40,18 @@ def index():
         '''
     ).fetchall()
 
+    active_conversations = db.execute(
+        '''
+        SELECT 
+            c.id,
+            c.name,
+            o.name AS org_name,
+            c.status
+        FROM contacts AS c
+        LEFT JOIN orgs AS o
+        ON c.org_id = o.id
+        WHERE c.status IN ("Response Received", "Referred and Recommended")
+        '''
+    ).fetchall()
 
     return render_template('dashboard/index.html', num_apps = num_apps, progress = progress, referred = referred, follow_ups = follow_ups)

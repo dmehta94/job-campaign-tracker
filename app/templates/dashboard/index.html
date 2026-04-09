@@ -29,4 +29,24 @@
         {% endfor %}
     </tbody>
 </table>
+
+<h2>Active Conversations</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Organization</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in active_conversations %}
+        <tr>
+            <td>{{ entry.name }}</td>
+            <td>{{ entry.org_name }}</td>
+            <td>{{ entry.status }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
