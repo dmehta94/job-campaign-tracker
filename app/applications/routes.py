@@ -39,6 +39,9 @@ def add_application():
         status = request.form['status']
         follow_up_date = request.form['follow_up_date']
         notes = request.form['notes']
+
+        if org_name == "other":
+            org_name = request.form['other_org_name']
     
         org = db.execute(
             "SELECT id FROM orgs WHERE name = ?", (org_name,)
@@ -70,7 +73,8 @@ def add_application():
             ''',
             ("Referred and Recommended",)
         ).fetchall()
-        return render_template('applications/add.html', ref_info = ref_info)
+        org_info = db.execute('SELECT id, name FROM orgs').fetchall()
+        return render_template('applications/add.html', ref_info = ref_info, org_info = org_info)
     
 @applications_bp.route('/applications/<int:id>')
 def application_detail(id):
