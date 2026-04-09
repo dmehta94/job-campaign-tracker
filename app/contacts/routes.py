@@ -22,6 +22,7 @@ def list_contacts():
 
 @contacts_bp.route('/contacts/add', methods=['GET', 'POST'])
 def add_contact():
+    db = get_db()
     if request.method == 'POST':
         name = request.form['name']
         org_name = request.form['org_name']
@@ -31,7 +32,8 @@ def add_contact():
         next_follow_up_date = request.form['next_follow_up_date']
         notes = request.form['notes']
 
-        db = get_db()
+        if org_name == "other":
+            org_name = request.form['other_org_name']
 
         org = db.execute(
             "SELECT id FROM orgs WHERE name = ?", (org_name,)
@@ -53,7 +55,8 @@ def add_contact():
         db.commit()
         return redirect(url_for('contacts.list_contacts'))
     else:
-        return render_template('contacts/add.html')
+        org_info = db.execute('SELECT id, name FROM orgs').fetchall()
+        return render_template('contacts/add.html', org_info = org_info)
     
 @contacts_bp.route('/contacts/<int:id>')
 def contact_detail(id):

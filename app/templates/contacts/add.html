@@ -7,7 +7,14 @@
     <label>Name</label>
     <input type="text" name="name">
     <label>Organization</label>
-    <input type="text" name="org_name">
+    <select name="org_name">
+        {% for org in org_info %}
+        <option value="{{ org['name'] }}">{{ org['name'] }}</option>
+        {% endfor %}
+        <option value="other">Other</option>
+    </select>
+    <label>If other, enter org name</label>
+    <input type="text" name="other_org_name" id="other_org_name">
     <label>Platform</label>
     <input type="text" name="platform">
     <label>Value</label>
