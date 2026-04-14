@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, abort
 from . import applications_bp
 from ..database import get_db
 
@@ -101,6 +101,9 @@ def application_detail(id):
         ''',
         (id,)
     ).fetchone()
+
+    if details is None:
+        abort(404)
     return render_template('applications/detail.html', application=details)
 
 @applications_bp.route('/applications/<int:id>/edit', methods=['POST'])
@@ -109,6 +112,11 @@ def edit_application(id):
     follow_up_date = request.form['follow_up_date']
 
     db = get_db()
+
+    existence = db.execute(
+        "SELECT 1 FROM applications WHERE id = ?", (id,)
+    ).fetchone()
+    
     db.execute(
         '''
         UPDATE applications
@@ -120,4 +128,7 @@ def edit_application(id):
     )
 
     db.commit()
+
+    if existence is None:
+        abort(404)
     return redirect(url_for('applications.application_detail', id=id))

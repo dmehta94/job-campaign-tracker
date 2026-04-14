@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, abort
 from . import contacts_bp
 from ..database import get_db
 
@@ -85,6 +85,8 @@ def contact_detail(id):
         (id,)
     ).fetchall()
     
+    if details is None:
+        abort(404)
     return render_template('contacts/detail.html', contact=details, history=history)
 
 @contacts_bp.route('/contacts/<int:id>/interact', methods=['POST'])
@@ -94,6 +96,10 @@ def interaction_log(id):
     date = request.form['date']
 
     db = get_db()
+
+    existence = db.execute(
+        "SELECT 1 FROM applications WHERE id = ?", (id,)
+    ).fetchone()
 
     db.execute(
         '''
@@ -116,6 +122,8 @@ def interaction_log(id):
     
     db.commit()
 
+    if existence is None:
+        abort(404)
     return redirect(url_for('contacts.contact_detail', id=id))
 
 @contacts_bp.route('/contacts/<int:id>/edit', methods=['POST'])
@@ -125,6 +133,10 @@ def edit_contact(id):
     notes = request.form['notes']
 
     db = get_db()
+    existence = db.execute(
+        "SELECT 1 FROM applications WHERE id = ?", (id,)
+    ).fetchone()
+
     existing = db.execute(
         '''
         SELECT notes
@@ -152,5 +164,8 @@ def edit_contact(id):
     )
 
     db.commit()
+
+    if existence is None:
+        abort(404)
     return redirect(url_for('contacts.contact_detail', id=id))
 
