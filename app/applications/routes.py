@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, abort
+from flask import render_template, request, redirect, url_for, flash, abort
 from . import applications_bp
 from ..database import get_db
 
@@ -62,6 +62,8 @@ def add_application():
         )
 
         db.commit()
+
+        flash('New application added successfully!')
         return redirect(url_for('applications.list_applications'))
 
     else:
@@ -117,6 +119,9 @@ def edit_application(id):
         "SELECT 1 FROM applications WHERE id = ?", (id,)
     ).fetchone()
     
+    if existence is None:
+        abort(404)
+
     db.execute(
         '''
         UPDATE applications
@@ -129,6 +134,4 @@ def edit_application(id):
 
     db.commit()
 
-    if existence is None:
-        abort(404)
     return redirect(url_for('applications.application_detail', id=id))

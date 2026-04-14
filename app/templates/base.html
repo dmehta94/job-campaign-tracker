@@ -14,6 +14,15 @@
             href="{{ url_for('contacts.list_contacts') }}">Contacts</a> | <a
             href="{{ url_for('orgs.list_orgs') }}">Organizations</a>
     </nav>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     {% block content%} {% endblock %}
 </body>
 

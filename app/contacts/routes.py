@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, abort
+from flask import render_template, request, redirect, url_for, flash, abort
 from . import contacts_bp
 from ..database import get_db
 
@@ -53,6 +53,8 @@ def add_contact():
             (name, org_id, platform, contact_value, capacity, next_follow_up_date, notes)
         )
         db.commit()
+
+        flash('New contact added successfully!')
         return redirect(url_for('contacts.list_contacts'))
     else:
         org_info = db.execute('SELECT id, name FROM orgs').fetchall()
@@ -98,9 +100,12 @@ def interaction_log(id):
     db = get_db()
 
     existence = db.execute(
-        "SELECT 1 FROM applications WHERE id = ?", (id,)
+        "SELECT 1 FROM contacts WHERE id = ?", (id,)
     ).fetchone()
 
+    if existence is None:
+        abort(404)
+    
     db.execute(
         '''
         INSERT INTO interactions (contact_id, interaction_type, notes, date) VALUES (?, ?, ?, ?)
@@ -122,8 +127,6 @@ def interaction_log(id):
     
     db.commit()
 
-    if existence is None:
-        abort(404)
     return redirect(url_for('contacts.contact_detail', id=id))
 
 @contacts_bp.route('/contacts/<int:id>/edit', methods=['POST'])
@@ -134,8 +137,11 @@ def edit_contact(id):
 
     db = get_db()
     existence = db.execute(
-        "SELECT 1 FROM applications WHERE id = ?", (id,)
+        "SELECT 1 FROM contacts WHERE id = ?", (id,)
     ).fetchone()
+
+    if existence is None:
+        abort(404)
 
     existing = db.execute(
         '''
@@ -165,7 +171,5 @@ def edit_contact(id):
 
     db.commit()
 
-    if existence is None:
-        abort(404)
     return redirect(url_for('contacts.contact_detail', id=id))
 
