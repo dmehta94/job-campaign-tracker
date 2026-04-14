@@ -1,4 +1,4 @@
-# Imports
+"""Application factory for the job-campaign-tracker Flask app."""
 from flask import Flask, render_template
 from config import config
 from .dashboard import dashboard_bp
@@ -7,9 +7,15 @@ from .applications import applications_bp
 from .orgs import orgs_bp
 from .database import close_db
 
-# Define create_app function
-# Add Google-style docstring later
-def create_app(config_name='development'):
+def create_app(config_name='development') -> Flask:
+    """Creates the flask app and registers all blueprints.
+    
+    Args:
+        config_name (str): Configuration mode for the app (development, testing, production)
+        
+    Returns:
+        Flask: App loaded with all blueprints and error handlers
+    """
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     app.config['CONFIG_NAME'] = config_name
