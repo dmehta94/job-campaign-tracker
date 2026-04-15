@@ -1,9 +1,15 @@
+"""Contact management routes for the job-campaign-tracker Flask app."""
 from flask import render_template, request, redirect, url_for, flash, abort
 from . import contacts_bp
 from ..database import get_db
 
 @contacts_bp.route('/contacts')
 def list_contacts():
+    """Generate a list of all contacts from the contacts table.
+    
+    Returns:
+        Response: rendered template for the full list of contacts with associated organization names.
+    """
     db = get_db()
 
     contacts = db.execute(
@@ -22,7 +28,16 @@ def list_contacts():
 
 @contacts_bp.route('/contacts/add', methods=['GET', 'POST'])
 def add_contact():
+    """Add a new contact entry with associated organization name to the contacts table.
+
+    If the organization does not exist, create a new stub entry for it in the orgs table.
+    
+    Returns:
+        Response: rendered template for the updated contacts table with associated organizations.
+    """
     db = get_db()
+
+    # Serve the empty form on GET; process and save the submission on POST
     if request.method == 'POST':
         name = request.form['name']
         org_name = request.form['org_name']
@@ -39,6 +54,7 @@ def add_contact():
             "SELECT id FROM orgs WHERE name = ?", (org_name,)
             ).fetchone()
 
+        # Create a new org stub in the orgs table if an entry for the org does not exist
         if org is None:
             org_id = db.execute(
               "INSERT INTO orgs (name) VALUES (?)", (org_name,)
@@ -62,6 +78,14 @@ def add_contact():
     
 @contacts_bp.route('/contacts/<int:id>')
 def contact_detail(id):
+    """Display detail view for a selected contact with associated organization and all interactions.
+    
+    Args:
+        id (int): the contact's internal identifier.
+        
+    Returns:
+        Response: rendered template with contact details and interaction history.
+    """
     db = get_db()
 
     details = db.execute(
@@ -93,6 +117,14 @@ def contact_detail(id):
 
 @contacts_bp.route('/contacts/<int:id>/interact', methods=['POST'])
 def interaction_log(id):
+    """Log a new interaction with a selected contact and update the contact status.
+    
+    Args:
+        id (int): the contact's internal identifier.
+        
+    Returns:
+        Response: redirect to the contact detail page
+    """
     interaction_type = request.form['interaction_type']
     notes = request.form['notes']
     date = request.form['date']
@@ -131,6 +163,14 @@ def interaction_log(id):
 
 @contacts_bp.route('/contacts/<int:id>/edit', methods=['POST'])
 def edit_contact(id):
+    """Edit the status, follow-up date, and notes for an existing contact.
+    
+    Args:
+        id (int): the contact's internal identifier.
+        
+    Returns:
+        Response: redirect to the contact detail page with the contact details edited.
+    """
     status = request.form['status']
     next_follow_up_date = request.form['next_follow_up_date']
     notes = request.form['notes']
@@ -152,6 +192,7 @@ def edit_contact(id):
         (id,)
     ).fetchone()
 
+    # Append new notes to the entry, rather than replacing the existing ones
     if existing['notes'] is None:
         new_notes = notes
     else:
