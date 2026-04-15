@@ -1,12 +1,11 @@
-# Imports
+"""Configuration handling for job-campaign-tracker Flask app."""
 import os
 from dotenv import load_dotenv
 
-# Load from .env
 load_dotenv()
 
-# Define config class and Development, Testing, and Production subclasses
 class Config:
+    """Base configuration class with shared settings for all environments."""
     SECRET_KEY = os.environ.get('SECRET_KEY')
     DATABASE_URI = os.environ.get('DATABASE_URI')
 
@@ -20,7 +19,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
 
-# Add a dictionary to map string names to the relevant classes
+
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
