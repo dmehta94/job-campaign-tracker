@@ -1,9 +1,15 @@
+"""Application management routes for the job-campaign-tracker Flask app."""
 from flask import render_template, request, redirect, url_for, flash, abort
 from . import applications_bp
 from ..database import get_db
 
 @applications_bp.route('/applications')
 def list_applications():
+    """Generate a list of all applications from the applications table.
+    
+    Returns:
+        Response: rendered template for the full list of job applications with associated organization names.
+    """
     db = get_db()
 
     applications = db.execute(
@@ -28,13 +34,23 @@ def list_applications():
 
 @applications_bp.route('/applications/add', methods=['GET', 'POST'])
 def add_application():
+    """Add a new application entry with associated organization name to the applications table.
+    
+    If the organization does not exist, create a new stub entry for it in the orgs table.
+    
+    Returns:
+        Response: rendered template for the updated applications table with associated organizations.
+    """
     db = get_db()
+
+    # Serve the empty form on GET; process and save the submission on POST
     if request.method == 'POST':
         date_applied = request.form['app_submitted']
         org_name = request.form['org_name']
         role_title = request.form['role']
         job_url = request.form['url']
         referral_contact_id = request.form['referral_contact_id']
+        # If no referral received for a position, set referral_contact_id to None
         referral_contact_id = None if referral_contact_id == "" else referral_contact_id
         status = request.form['status']
         follow_up_date = request.form['follow_up_date']
@@ -47,6 +63,7 @@ def add_application():
             "SELECT id FROM orgs WHERE name = ?", (org_name,)
         ).fetchone()
 
+        # Create a new org stub in the orgs table if an entry for the org does not exist
         if org is None:
             org_id = db.execute(
                 "INSERT INTO orgs (name) VALUES (?)", (org_name,)
@@ -80,6 +97,14 @@ def add_application():
     
 @applications_bp.route('/applications/<int:id>')
 def application_detail(id):
+    """Display detail view for a selected application with associated organization name.
+    
+    Args:
+        id (int): the application's internal identifier.
+        
+    Returns:
+        Response: rendered template with application details.
+    """
     db = get_db()
 
     details = db.execute(
@@ -110,6 +135,14 @@ def application_detail(id):
 
 @applications_bp.route('/applications/<int:id>/edit', methods=['POST'])
 def edit_application(id):
+    """Edit the status and follow up date for an existing application.
+    
+    Args:
+        id (int): the application's internal identifier.
+        
+    Returns:
+        Response: redirect to the application detail page with the applications details updated.
+    """
     status = request.form['status']
     follow_up_date = request.form['follow_up_date']
 
