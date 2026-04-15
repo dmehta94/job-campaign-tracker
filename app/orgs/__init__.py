@@ -1,7 +1,6 @@
+"""Instantiates orgs blueprint for the job-campaign-tracker application."""
 from flask import Blueprint
 
-# Instantiate the applications blueprint
 orgs_bp = Blueprint("orgs", __name__)
 
-# Import the applications index route
 from . import routes
