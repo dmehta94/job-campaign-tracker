@@ -1,5 +1,10 @@
-/* Orgs table
-Add Google-style docstring here in post
+/* Schema for the job-campaign-tracker application.
+   Defines four tables: orgs, contacts, interactions, and applications.
+*/
+
+/* Stores organizations being tracked in the job search.
+   category and lamp_list support filtering by org type and target list status.
+   ON DELETE SET NULL on contacts and applications preserves records for removed orgs.
 */
 CREATE TABLE IF NOT EXISTS orgs (
     id INTEGER PRIMARY KEY,
@@ -11,8 +16,9 @@ CREATE TABLE IF NOT EXISTS orgs (
     created_date TEXT DEFAULT CURRENT_DATE
 );
 
-/* Contacts table
-Add Google-style docstring here in post
+/* Stores contacts being tracked in the job search.
+   Reach a contact on the platform provided with contact_value as the handle/address.
+   capacity is a contact's professional capacity (peer, hiring manager, executive, etc.)
 */
 CREATE TABLE IF NOT EXISTS contacts (
     id INTEGER PRIMARY KEY,
@@ -27,8 +33,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     created_date TEXT DEFAULT CURRENT_DATE
 );
 
-/* Interactions table
-Add Google-style docstring here in post
+/* Stores interactions with contacts being tracked in the job search.
+   ON DELETE CASCADE removes interaction records when the associated contact is deleted.
 */
 CREATE TABLE IF NOT EXISTS interactions (
     id INTEGER PRIMARY KEY,
@@ -38,8 +44,8 @@ CREATE TABLE IF NOT EXISTS interactions (
     date TEXT NOT NULL
 );
 
-/* Applications table
-Add Google-style docstring here in post
+/* Stores applications being tracked in the job search.
+   referral_contact_id links an application to a referring contact where applicable.
 */
 CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY, 
@@ -53,7 +59,7 @@ CREATE TABLE IF NOT EXISTS applications (
     notes TEXT
 );
 
-/* Create indexes on foreign keys to improve query performance*/
+/* Create indexes on foreign keys to improve query performance. */
 CREATE INDEX idx_org_id ON contacts (org_id);
 CREATE INDEX idx_contact_id ON interactions (contact_id);
 CREATE INDEX idx_referral_contact_id ON applications (referral_contact_id);
