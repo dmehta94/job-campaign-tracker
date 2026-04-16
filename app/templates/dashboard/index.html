@@ -1,3 +1,4 @@
+<!-- Dashboard template displaying summary metrics and activity tables. -->
 {% extends "base.html" %}
 
 {% block title %}Home - Job Campaign Tracker{% endblock %}
@@ -24,6 +25,7 @@
             <td>{{ entry.name }}</td>
             <td>{{ entry.org_name }}</td>
             <td>{{ entry.next_follow_up_date }}</td>
+            <!-- round then cast to int to display whole days; julianday() returns a float -->
             <td>{{ entry.days_until_followup | round | int }}</td>
         </tr>
         {% endfor %}
