@@ -1,4 +1,4 @@
-"""Execution file for the job-campaign-tracker flask app."""
+"""Execution file for the job-campaign-tracker Flask app."""
 import sys
 import os
 
