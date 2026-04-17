@@ -14,7 +14,7 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    DATABASE_URI = 'sqlite:///test.db'
+    DATABASE_URI = 'test.db'
 
 class ProductionConfig(Config):
     DEBUG = False
