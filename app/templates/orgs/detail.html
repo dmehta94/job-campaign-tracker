@@ -17,4 +17,25 @@
     {% endfor %}
 </dl>
 
+<h2>Edit Organization</h2>
+<form action="/orgs/{{ org.id }}/edit" method="post">
+    <label>URL</label>
+    <input type="text" name="careers_url" value="{{ org.careers_url }}">
+    <label>Category</label>
+    <select name="category">
+        <option value="Civic Tech">Civic Tech</option>
+        <option value="Mission Aligned">Mission Aligned</option>
+        <option value="Research & Policy">Research & Policy</option>
+        <option value="Enforcement & Accountability">Enforcement & Accountability</option>
+    </select>
+    <label>LAMP List</label>
+    <select name="lamp_list">
+        <option value="1">Y</option>
+        <option value="0">N</option>
+    </select>
+    <label>Notes</label>
+    <input type="text" name="notes">
+    <button type="submit">Update</button>
+</form>
+
 {% endblock %}
