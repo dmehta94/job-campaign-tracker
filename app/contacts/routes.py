@@ -206,8 +206,8 @@ def edit_contact(id):
             next_follow_up_date = ?,
             notes = ?
         WHERE id = ?
-            ''',
-            (status, next_follow_up_date, new_notes, id)
+        ''',
+        (status, next_follow_up_date, new_notes, id)
     )
 
     db.commit()
