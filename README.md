@@ -131,7 +131,6 @@ I used Conventional Commits throughout, which forced me to think clearly about w
 ## Limitations
 This is a portfolio and learning project, not a production application. A few limitations worth noting:
 
-* **Incomplete functionality** — an edit_org route was never implemented, leaving stubs in place. There are likely other queries a user would want that the dashboard doesn't surface.
 * **No authentication** — there are no user accounts or access control. Anyone with access to the URL can read and write data.
 * **Local only** — the app runs on your machine. There is no deployment or cloud hosting.
 * **SQLite at scale** — SQLite is appropriate for a personal tracker but would need to be replaced with a more robust database for multi-user or high-volume use.
@@ -139,7 +138,6 @@ This is a portfolio and learning project, not a production application. A few li
 ## Future Ideas/Next Steps
 The limitations of the project lay out my next steps pretty cleanly:
 
-* Create an edit_org route, so the user can modify any stubs they create when logging applications or contacts.
 * Accumulate and incorporate user feedback to write additional queries for the dashboard.
 * Cloud-based architecture and deployment to make this project truly production-grade.
 * Move from SQLite to PostgreSQL to accommodate higher volumes of data and multi-user functionality.
