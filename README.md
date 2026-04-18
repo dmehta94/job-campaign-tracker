@@ -126,6 +126,12 @@ Jinja2 was entirely new to me coming into this project. At its core, it's a temp
 **Software Engineering Practices**\
 I came into this project intending to work collaboratively with Claude — using it for ideation and structure, then having it guide me through the build. Early on, Claude jumped ahead and produced code before I'd had a chance to work through it myself. I recognized what had happened and reset the dynamic, asking Claude to explain concepts first, ask guided questions, and let me write the code. That decision shaped the entire project.
 
+This is the first project for which I wrote a `pytest` suite. The idea seemed overwhelming at first, as I unfortunately waited until the tail end to write the whole suite. That said, as I worked through the tests, I learned just how simple writing tests with `pytest` is: naming conventions minimize the number of imports, fixtures have an inheritance-like structure regarding dependencies, and Flask's testing configuration automatically handles creating a test client, so all I had to do was wire it into the fixture. I ran into three debugging lessons along the way:
+
+* I had initially written `sqlite:///test.db` as the `DATABASE_URI` for the testing configuration, but that's not the format that SQLite recognizes. Instead of a URI, I needed a file path, so that had to be replaced with `test.db`.
+* I'd been familiar with 200 as the status code for successfully loading a page. I assumed that I needed to assert that for all of my tests, but learned that for a redirect after a successful form submission, I needed 302.
+* Likewise, I knew about 404 and 500 as error codes, but not 405, which denotes a method not being allowed.
+
 I used Conventional Commits throughout, which forced me to think clearly about what each commit was actually doing before writing the message. Maintaining that discipline motivated me to ask for a Git cheat sheet — something I hadn't thought to produce for myself before.
 
 ## Limitations
@@ -134,6 +140,7 @@ This is a portfolio and learning project, not a production application. A few li
 * **No authentication** — there are no user accounts or access control. Anyone with access to the URL can read and write data.
 * **Local only** — the app runs on your machine. There is no deployment or cloud hosting.
 * **SQLite at scale** — SQLite is appropriate for a personal tracker but would need to be replaced with a more robust database for multi-user or high-volume use.
+* **Shared seed data for tests** — For the sake of simplicity, the whole testing suite relies on the same seed data. For a more robust, application, tests should be fully independent, with isolated per-test data.
 
 ## Future Ideas/Next Steps
 The limitations of the project lay out my next steps pretty cleanly:
@@ -141,6 +148,7 @@ The limitations of the project lay out my next steps pretty cleanly:
 * Accumulate and incorporate user feedback to write additional queries for the dashboard.
 * Cloud-based architecture and deployment to make this project truly production-grade.
 * Move from SQLite to PostgreSQL to accommodate higher volumes of data and multi-user functionality.
+* The notes fields in all the forms are currently type `<text>`. `<textarea>` would be more appropriate for the UI.
 
 One more step to note to make the app production-grade: styling. The app is admittedly very plain right now. A CSS file with branding and style will make it far more visually appealing.
 
