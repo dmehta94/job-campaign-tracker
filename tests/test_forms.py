@@ -64,3 +64,13 @@ def test_edit_application(seeded_client):
                                       'follow_up_date': ''
                                   })
     assert response.status_code == 302
+
+def test_edit_org(seeded_client):
+    response = seeded_client.post('/orgs/1/edit',
+                                  data = {
+                                      'careers_url': 'civtech.org',
+                                      'category': 'Civic Tech',
+                                      'lamp_list': '1',
+                                      'notes': ''
+                                  })
+    assert response.status_code == 302
