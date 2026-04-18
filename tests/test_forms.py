@@ -38,3 +38,29 @@ def test_add_org_post(seeded_client):
                                       'notes': ''
                                   })
     assert response.status_code == 302
+
+def test_interaction_log(seeded_client):
+    response = seeded_client.post('/contacts/1/interact',
+                                  data = {
+                                      'interaction_type': 'Informational Interview',
+                                      'notes': 'Willing to provide referral',
+                                      'date': '04/18/2026'
+                                  })
+    assert response.status_code == 302
+
+def test_edit_contact(seeded_client):
+    response = seeded_client.post('/contacts/1/edit',
+                                  data = {
+                                      'status': 'Referred and Recommended',
+                                      'next_follow_up_date': '',
+                                      'notes': ''
+                                  })
+    assert response.status_code == 302
+
+def test_edit_application(seeded_client):
+    response = seeded_client.post('/applications/1/edit',
+                                  data = {
+                                      'status': 'ATS Screened',
+                                      'follow_up_date': ''
+                                  })
+    assert response.status_code == 302
