@@ -85,3 +85,59 @@ def org_detail(id):
     if details is None:
         abort(404)
     return render_template('orgs/detail.html', org=details)
+
+@orgs_bp.route('/orgs/<int:id>/edit', methods=['POST'])
+def edit_org(id):
+    """Edit the url, category, lamp list designation, and notes for an existing organization.
+    
+    Args:
+        id (int): the organization's internal identifier.
+        
+    Returns:
+        Response: redirect to the organization detail page with the organization details edited.
+    """
+
+    careers_url = request.form['careers_url']
+    category = request.form['category']
+    lamp_list = request.form['lamp_list']
+    notes = request.form['notes']
+
+    db = get_db()
+    existence = db.execute(
+        "SELECT 1 FROM orgs WHERE id = ?", (id,)
+    ).fetchone()
+
+    if existence is None:
+        abort(404)
+
+    existing = db.execute(
+        '''
+        SELECT notes
+        FROM orgs
+        WHERE id = ?
+        ''',
+        (id,)
+    ).fetchone()
+
+    # Append new notes to the entry, rather than replacing the existing ones
+    if existing['notes'] is None:
+        new_notes = notes
+    else:
+        new_notes = existing['notes'] + notes
+
+    db.execute(
+        '''
+        UPDATE orgs
+        SET
+            careers_url = ?,
+            category = ?,
+            lamp_list = ?,
+            notes = ?
+        WHERE id = ?
+        ''',
+        (careers_url, category, lamp_list, new_notes, id)
+    )
+
+    db.commit()
+
+    return redirect(url_for('orgs.org_detail', id=id))
