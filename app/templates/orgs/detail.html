@@ -6,32 +6,32 @@
 {% block content %}
 {% set fields = [
     ('name', 'Organization'), ('careers_url', 'Careers Page'),
-    ('category', 'Category'), ('lamp_list', 'LAMP List'),
+    ('category', 'Category'), ('tier1', 'Tier 1 Target'),
     ('notes', 'Notes'), ('created_date', 'Date Created')
 ] %}
 
 <dl>
     {% for field, label in fields %}
     <dt>{{ label }}</dt>
-    <dd>{{ org[field] }}</dd>
+    <dd>{% if field == 'tier1' %}{{ 'Yes' if org[field] else 'No' }}{% else %}{{ org[field] if org[field] is not none else '' }}{% endif %}</dd>
     {% endfor %}
 </dl>
 
 <h2>Edit Organization</h2>
 <form action="/orgs/{{ org.id }}/edit" method="post">
     <label>URL</label>
-    <input type="text" name="careers_url" value="{{ org.careers_url }}">
+    <input type="text" name="careers_url" value="{{ org.careers_url or '' }}">
     <label>Category</label>
     <select name="category">
-        <option value="Civic Tech">Civic Tech</option>
-        <option value="Mission Aligned">Mission Aligned</option>
-        <option value="Research & Policy">Research & Policy</option>
-        <option value="Enforcement & Accountability">Enforcement & Accountability</option>
+        <option value="" {% if not org.category %}selected{% endif %}>(none)</option>
+        {% for category in categories %}
+        <option value="{{ category }}" {% if org.category == category %}selected{% endif %}>{{ category }}</option>
+        {% endfor %}
     </select>
-    <label>LAMP List</label>
-    <select name="lamp_list">
-        <option value="1">Y</option>
-        <option value="0">N</option>
+    <label>Tier 1 Target</label>
+    <select name="tier1">
+        <option value="0" {% if not org.tier1 %}selected{% endif %}>No</option>
+        <option value="1" {% if org.tier1 %}selected{% endif %}>Yes</option>
     </select>
     <label>Notes</label>
     <input type="text" name="notes">

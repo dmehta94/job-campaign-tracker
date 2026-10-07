@@ -16,15 +16,15 @@
     <input type="text" name="careers_url">
     <label>Category</label>
     <select name="category">
-        <option value="Civic Tech">Civic Tech</option>
-        <option value="Mission-Aligned">Mission-Aligned</option>
-        <option value="Research & Policy">Research & Policy</option>
-        <option value="Enforcement Analytics">Enforcement Analytics</option>
+        <option value="">(none)</option>
+        {% for category in categories %}
+        <option value="{{ category }}">{{ category }}</option>
+        {% endfor %}
     </select>
-    <label>LAMP List</label>
-    <select name="lamp_list">
-        <option value="Y">Yes</option>
-        <option value="N">No</option>
+    <label>Tier 1 Target</label>
+    <select name="tier1">
+        <option value="0">No</option>
+        <option value="1">Yes</option>
     </select>
     <label>Notes</label>
     <input type="text" name="notes">

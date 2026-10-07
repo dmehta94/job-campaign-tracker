@@ -3,6 +3,16 @@ from flask import render_template, request, redirect, url_for, abort, flash
 from . import orgs_bp
 from ..database import get_db
 
+CATEGORIES = ['Education', 'NYC Government', 'Civic Tech', 'Research & Policy', 'Higher Ed']
+
+def _clean_category(value):
+    """Return a valid category, or None for blank or unrecognized input."""
+    return value if value in CATEGORIES else None
+
+def _clean_tier1(value):
+    """Return 1 for a Tier 1 org, otherwise 0."""
+    return 1 if value == '1' else 0
+
 @orgs_bp.route('/orgs')
 def list_orgs():
     """Generate a list of all organizations of interest from the orgs table.
@@ -18,8 +28,10 @@ def list_orgs():
             id,
             name,
             careers_url,
-            category
+            category,
+            tier1
         FROM orgs
+        ORDER BY tier1 DESC, name
         '''
     ).fetchall()
     return render_template('/orgs/index.html', orgs = orgs)
@@ -34,11 +46,11 @@ def add_org():
 
     # Serve the entry form on GET; process and save the submission on POST
     if request.method == 'POST':
-        name = request.form['name']
-        careers_url = request.form['careers_url']
-        category = request.form['category']
-        lamp_list = request.form['lamp_list']
-        notes = request.form['notes']
+        name = request.form.get('name', '').strip()
+        careers_url = request.form.get('careers_url', '')
+        category = _clean_category(request.form.get('category'))
+        tier1 = _clean_tier1(request.form.get('tier1'))
+        notes = request.form.get('notes', '')
 
         # Require the user to submit a name for the organization
         if not name:
@@ -49,17 +61,17 @@ def add_org():
 
         db.execute(
             '''
-            INSERT INTO orgs (name, careers_url, category, lamp_list, notes)
+            INSERT INTO orgs (name, careers_url, category, tier1, notes)
             VALUES (?, ?, ?, ?, ?)
             ''',
-            (name, careers_url, category, lamp_list, notes)
+            (name, careers_url, category, tier1, notes)
         )
 
         db.commit()
         return redirect(url_for('orgs.list_orgs'))
     
     else:
-        return(render_template('orgs/add.html'))
+        return render_template('orgs/add.html', categories=CATEGORIES)
 
 @orgs_bp.route('/orgs/<int:id>')
 def org_detail(id):
@@ -84,11 +96,11 @@ def org_detail(id):
 
     if details is None:
         abort(404)
-    return render_template('orgs/detail.html', org=details)
+    return render_template('orgs/detail.html', org=details, categories=CATEGORIES)
 
 @orgs_bp.route('/orgs/<int:id>/edit', methods=['POST'])
 def edit_org(id):
-    """Edit the url, category, lamp list designation, and notes for an existing organization.
+    """Edit the url, category, Tier 1 designation, and notes for an existing organization.
     
     Args:
         id (int): the organization's internal identifier.
@@ -97,10 +109,10 @@ def edit_org(id):
         Response: redirect to the organization detail page with the organization details edited.
     """
 
-    careers_url = request.form['careers_url']
-    category = request.form['category']
-    lamp_list = request.form['lamp_list']
-    notes = request.form['notes']
+    careers_url = request.form.get('careers_url', '')
+    category = _clean_category(request.form.get('category'))
+    tier1 = _clean_tier1(request.form.get('tier1'))
+    notes = request.form.get('notes', '')
 
     db = get_db()
     existence = db.execute(
@@ -120,10 +132,12 @@ def edit_org(id):
     ).fetchone()
 
     # Append new notes to the entry, rather than replacing the existing ones
-    if existing['notes'] is None:
+    if not existing['notes']:
         new_notes = notes
+    elif not notes:
+        new_notes = existing['notes']
     else:
-        new_notes = existing['notes'] + notes
+        new_notes = existing['notes'] + '\n' + notes
 
     db.execute(
         '''
@@ -131,11 +145,11 @@ def edit_org(id):
         SET
             careers_url = ?,
             category = ?,
-            lamp_list = ?,
+            tier1 = ?,
             notes = ?
         WHERE id = ?
         ''',
-        (careers_url, category, lamp_list, new_notes, id)
+        (careers_url, category, tier1, new_notes, id)
     )
 
     db.commit()

@@ -10,6 +10,7 @@
             <th>Name</th>
             <th>Careers Page</th>
             <th>Category</th>
+            <th>Tier 1</th>
         </tr>
     </thead>
     <tbody>
@@ -17,7 +18,8 @@
         <tr>
             <td><a href="{{ url_for('orgs.org_detail', id = org.id) }}">{{ org.name }}</a></td>
             <td>{{ org.careers_url }}</td>
-            <td>{{ org.category }}</td>
+            <td>{{ org.category or '' }}</td>
+            <td>{{ 'Yes' if org.tier1 else '' }}</td>
         </tr>
         {% endfor %}
     </tbody>
