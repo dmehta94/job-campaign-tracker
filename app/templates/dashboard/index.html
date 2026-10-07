@@ -5,28 +5,49 @@
 
 {% block content %}
 <h1>Seamless Application and Networking Tracking</h1>
+
+<h2>This Week</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Goal</th>
+            <th>Done</th>
+            <th>Target</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in quota %}
+        <tr>
+            <td>{{ item.label }}</td>
+            <td>{{ item.done }}</td>
+            <td>{{ item.goal }}{% if item.done >= item.goal %} &#10003;{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 <p>Applications Submitted: {{num_apps}}</p>
 <p>Applications Progressed to Interview: {{progress}}</p>
 <p>Referrals Received: {{referred}}</p>
 
-<h2>Pending Follow-Ups</h2>
+<h2>Follow-Ups Due</h2>
 <table>
     <thead>
         <tr>
             <th>Contact</th>
             <th>Organization</th>
             <th>Follow-Up Date</th>
-            <th>Days Remaining</th>
+            <th>When</th>
         </tr>
     </thead>
     <tbody>
         {% for entry in follow_ups %}
         <tr>
-            <td>{{ entry.name }}</td>
+            <td><a href="{{ url_for('contacts.contact_detail', id = entry.id) }}">{{ entry.name }}</a></td>
             <td>{{ entry.org_name }}</td>
             <td>{{ entry.next_follow_up_date }}</td>
             <!-- round then cast to int to display whole days; julianday() returns a float -->
-            <td>{{ entry.days_until_followup | round | int }}</td>
+            {% set days = entry.days_until_followup | round | int %}
+            <td>{% if days < 0 %}<strong>Overdue by {{ -days }} day{{ 's' if days < -1 }}</strong>{% elif days == 0 %}<strong>Today</strong>{% else %}In {{ days }} day{{ 's' if days > 1 }}{% endif %}</td>
         </tr>
         {% endfor %}
     </tbody>

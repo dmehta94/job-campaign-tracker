@@ -2,6 +2,11 @@
 from flask import render_template, request, redirect, url_for, flash, abort
 from . import contacts_bp
 from ..database import get_db
+from datetime import date as date_cls, timedelta
+
+# Interactions Dev initiates; logging one doesn't mean the contact has responded.
+OUTGOING_TYPES = ('Outreach Established', 'Follow-up')
+FOLLOW_UP_INTERVAL_DAYS = 7
 
 @contacts_bp.route('/contacts')
 def list_contacts():
@@ -113,7 +118,8 @@ def contact_detail(id):
     
     if details is None:
         abort(404)
-    return render_template('contacts/detail.html', contact=details, history=history)
+    return render_template('contacts/detail.html', contact=details, history=history,
+                           today=date_cls.today().isoformat())
 
 @contacts_bp.route('/contacts/<int:id>/interact', methods=['POST'])
 def interaction_log(id):
@@ -146,17 +152,32 @@ def interaction_log(id):
     )
 
     if interaction_type == 'Referral Received':
-        new_status = 'Referred and Recommended'
+        db.execute(
+            "UPDATE contacts SET status = 'Referred and Recommended' WHERE id = ?", (id,)
+        )
+    elif interaction_type in OUTGOING_TYPES:
+        # Reaching out doesn't change a contact's status, but it does start the clock
+        # on the next follow-up so the dashboard can surface it when it comes due.
+        try:
+            next_follow_up = date_cls.fromisoformat(date) + timedelta(days=FOLLOW_UP_INTERVAL_DAYS)
+        except (TypeError, ValueError):
+            next_follow_up = None
+        if next_follow_up is not None:
+            db.execute(
+                "UPDATE contacts SET next_follow_up_date = ? WHERE id = ?",
+                (next_follow_up.isoformat(), id)
+            )
     else:
-        new_status = 'Response Received'
+        # A conversation happened (interview, coffee chat, reconnect), so they've responded.
+        # Don't downgrade a contact who has already provided a referral.
+        db.execute(
+            '''
+            UPDATE contacts SET status = 'Response Received'
+            WHERE id = ? AND status != 'Referred and Recommended'
+            ''',
+            (id,)
+        )
 
-    db.execute(
-        '''
-        UPDATE contacts SET status = ? WHERE id = ?
-        ''',
-        (new_status, id)
-    )
-    
     db.commit()
 
     return redirect(url_for('contacts.contact_detail', id=id))
@@ -193,10 +214,12 @@ def edit_contact(id):
     ).fetchone()
 
     # Append new notes to the entry, rather than replacing the existing ones
-    if existing['notes'] is None:
+    if not existing['notes']:
         new_notes = notes
+    elif not notes:
+        new_notes = existing['notes']
     else:
-        new_notes = existing['notes'] + notes
+        new_notes = existing['notes'] + '\n' + notes
 
     db.execute(
         '''

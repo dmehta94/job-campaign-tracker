@@ -3,6 +3,9 @@ from flask import render_template
 from . import dashboard_bp
 from ..database import get_db
 
+# Weekly quota: a small fixed number of outgoing messages instead of application volume.
+WEEKLY_QUOTA = {'Outreach Established': 2, 'Follow-up': 1}
+
 @dashboard_bp.route('/')
 def index():
     """Render the dashboard with summary metrics and activity tables.
@@ -24,7 +27,28 @@ def index():
         "SELECT COUNT(*) FROM interactions WHERE interaction_type = 'Referral Received'"
     ).fetchone()[0]
 
-    # follow_up_data performs calendar arithmetic to compute the number of days between now and the next follow-up
+    # Monday-to-Sunday count of outgoing messages, compared against the weekly quota.
+    # date('now', 'localtime', 'weekday 0', '-6 days') is the Monday of the current week.
+    week_counts = dict(db.execute(
+        '''
+        SELECT interaction_type, COUNT(*) AS n
+        FROM interactions
+        WHERE date >= date('now', 'localtime', 'weekday 0', '-6 days')
+            AND date <= date('now', 'localtime')
+            AND interaction_type IN ('Outreach Established', 'Follow-up')
+        GROUP BY interaction_type
+        '''
+    ).fetchall())
+    quota = [
+        {'label': label, 'done': week_counts.get(itype, 0), 'goal': goal}
+        for itype, goal, label in [
+            ('Outreach Established', WEEKLY_QUOTA['Outreach Established'], 'Outreach messages'),
+            ('Follow-up', WEEKLY_QUOTA['Follow-up'], 'Follow-ups'),
+        ]
+    ]
+
+    # follow_up_data performs calendar arithmetic to compute the number of days between today and the next follow-up.
+    # Overdue follow-ups (negative days) stay on the list until handled; closed-out contacts are excluded.
     follow_ups = db.execute(
         '''
         WITH follow_up_data AS (
@@ -34,14 +58,18 @@ def index():
                 o.name AS org_name,
                 c.next_follow_up_date,
                 -- julianday() converts dates to a float to enable date arithmetic
-                julianday(next_follow_up_date) - julianday('now') AS days_until_followup
+                julianday(c.next_follow_up_date) - julianday(date('now', 'localtime')) AS days_until_followup
             FROM contacts AS c
             LEFT JOIN orgs AS o
             ON c.org_id = o.id
+            WHERE c.next_follow_up_date IS NOT NULL
+                AND c.next_follow_up_date != ''
+                AND c.status NOT IN ('Declined', 'Never Responded')
             )
         SELECT *
         FROM follow_up_data
-        WHERE (days_until_followup >= 0) AND (days_until_followup <= 7);
+        WHERE days_until_followup <= 7
+        ORDER BY days_until_followup;
         '''
     ).fetchall()
 
@@ -101,6 +129,7 @@ def index():
     
     return render_template(
         'dashboard/index.html',
+        quota = quota,
         num_apps = num_apps,
         progress = progress,
         referred = referred,
