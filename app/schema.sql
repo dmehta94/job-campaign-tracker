@@ -59,6 +59,12 @@ CREATE TABLE IF NOT EXISTS applications (
     notes TEXT
 );
 
+/* Emails already handled by the Gmail import (app/email_import.py), so each is logged once. */
+CREATE TABLE IF NOT EXISTS email_imports (
+    message_id TEXT PRIMARY KEY,
+    processed_date TEXT
+);
+
 /* Create indexes on foreign keys to improve query performance. */
 CREATE INDEX IF NOT EXISTS idx_org_id ON contacts (org_id);
 CREATE INDEX IF NOT EXISTS idx_contact_id ON interactions (contact_id);

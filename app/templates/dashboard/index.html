@@ -6,6 +6,10 @@
 {% block content %}
 <h1>Seamless Application and Networking Tracking</h1>
 
+<form method="post" action="{{ url_for('dashboard.check_email') }}">
+    <button type="submit">Check email for applications</button>
+</form>
+
 <h2>This Week</h2>
 <table>
     <thead>
@@ -25,6 +29,7 @@
         {% endfor %}
     </tbody>
 </table>
+<p>Applications this week: {{apps_this_week}}</p>
 <p>Applications Submitted: {{num_apps}}</p>
 <p>Applications Progressed to Interview: {{progress}}</p>
 <p>Referrals Received: {{referred}}</p>
@@ -46,6 +51,29 @@
             <td>{{ entry.org_name }}</td>
             <td>{{ entry.next_follow_up_date }}</td>
             <!-- round then cast to int to display whole days; julianday() returns a float -->
+            {% set days = entry.days_until_followup | round | int %}
+            <td>{% if days < 0 %}<strong>Overdue by {{ -days }} day{{ 's' if days < -1 }}</strong>{% elif days == 0 %}<strong>Today</strong>{% else %}In {{ days }} day{{ 's' if days > 1 }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Applications to Check On</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Organization</th>
+            <th>Role</th>
+            <th>Applied</th>
+            <th>Check In</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in app_follow_ups %}
+        <tr>
+            <td>{{ entry.org_name }}</td>
+            <td>{{ entry.role }}</td>
+            <td>{{ entry.date_applied }}</td>
             {% set days = entry.days_until_followup | round | int %}
             <td>{% if days < 0 %}<strong>Overdue by {{ -days }} day{{ 's' if days < -1 }}</strong>{% elif days == 0 %}<strong>Today</strong>{% else %}In {{ days }} day{{ 's' if days > 1 }}{% endif %}</td>
         </tr>

@@ -1,7 +1,8 @@
 """Populate the dashboard with summary metrics and activity tables."""
-from flask import render_template
+from flask import render_template, redirect, url_for, flash
 from . import dashboard_bp
 from ..database import get_db
+from .. import email_import
 
 # Weekly quota: a small fixed number of outgoing messages instead of application volume.
 WEEKLY_QUOTA = {'Outreach Established': 2, 'Follow-up': 1}
@@ -73,6 +74,32 @@ def index():
         '''
     ).fetchall()
 
+    # Applications still waiting on a reply whose check-in date is near or past.
+    app_follow_ups = db.execute(
+        '''
+        SELECT
+            a.id,
+            o.name AS org_name,
+            a.role_title AS role,
+            a.date_applied,
+            a.follow_up_date,
+            julianday(a.follow_up_date) - julianday(date('now', 'localtime')) AS days_until_followup
+        FROM applications AS a
+        LEFT JOIN orgs AS o
+        ON a.org_id = o.id
+        WHERE a.follow_up_date IS NOT NULL
+            AND a.follow_up_date != ''
+            AND a.status IN ('Applied', 'ATS Screened')
+            AND julianday(a.follow_up_date) - julianday(date('now', 'localtime')) <= 7
+        ORDER BY days_until_followup
+        '''
+    ).fetchall()
+
+    apps_this_week = db.execute(
+        "SELECT COUNT(*) FROM applications WHERE date_applied >= date('now', 'localtime', 'weekday 0', '-6 days') "
+        "AND status != 'Rejected by Org'"
+    ).fetchone()[0]
+
     active_conversations = db.execute(
         '''
         SELECT 
@@ -134,7 +161,26 @@ def index():
         progress = progress,
         referred = referred,
         follow_ups = follow_ups,
+        app_follow_ups = app_follow_ups,
+        apps_this_week = apps_this_week,
         active_conversations = active_conversations,
         apps_pipeline = apps_pipeline,
         org_rankings = org_rankings
         )
+
+
+@dashboard_bp.route('/check-email', methods=['POST'])
+def check_email():
+    """Log applications and rejections from the last two weeks of email, then return to the dashboard."""
+    try:
+        changes = email_import.run(get_db(), days=14)
+    except RuntimeError as exc:
+        flash(str(exc))
+    except Exception as exc:  # network or login problems: say so instead of showing an error page
+        flash(f"Couldn't check email ({type(exc).__name__}). Check your internet connection and app password.")
+    else:
+        if changes:
+            flash("From your email: " + "; ".join(changes))
+        else:
+            flash("Checked email: nothing new.")
+    return redirect(url_for('dashboard.index'))
