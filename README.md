@@ -48,6 +48,18 @@ If your database was created before October 2026, run this once to move it to th
 python scripts/migrate_2026_10.py
 ```
 
+**Log Applications from Email (optional)**\
+The tracker can read your "thank you for applying" and rejection emails and log them for you: new applications are added with a check-in date 10 days out, and rejections update the matching application. It reads Gmail read-only (nothing is marked as read) and everything stays on your computer.
+
+1. Create a Gmail app password (Google Account → Security → 2-Step Verification → App passwords).
+2. Add `GMAIL_ADDRESS` and `GMAIL_APP_PASSWORD` to your `.env` (see `.env.example`).
+3. Backfill once, checking first what it would do:
+```bash
+python scripts/import_from_gmail.py --days 400 --dry-run
+python scripts/import_from_gmail.py --days 400
+```
+After that, click **Check email for applications** on the dashboard whenever you like; it looks at the last two weeks.
+
 **Run the App**
 ```bash
 python run.py
