@@ -14,6 +14,7 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+    SECRET_KEY = 'test-secret-key'
     DATABASE_URI = 'test.db'
 
 class ProductionConfig(Config):

@@ -42,6 +42,12 @@ flask shell
 >>> exit()
 ```
 
+**Upgrading an Existing Database (October 2026)**\
+If your database was created before October 2026, run this once to move it to the current categories and add the Follow-up interaction type. It writes a backup copy first.
+```bash
+python scripts/migrate_2026_10.py
+```
+
 **Run the App**
 ```bash
 python run.py

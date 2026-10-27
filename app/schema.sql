@@ -3,15 +3,15 @@
 */
 
 /* Stores organizations being tracked in the job search.
-   category and lamp_list support filtering by org type and target list status.
+   category and tier1 support filtering by org type and priority-target status.
    ON DELETE SET NULL on contacts and applications preserves records for removed orgs.
 */
 CREATE TABLE IF NOT EXISTS orgs (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     careers_url TEXT,
-    category TEXT CHECK (category IN ('Civic Tech', 'Mission Aligned', 'Research & Policy', 'Enforcement & Accountability')),
-    lamp_list INTEGER CHECK (lamp_list IN (0,1)),
+    category TEXT CHECK (category IN ('Education', 'NYC Government', 'Civic Tech', 'Research & Policy', 'Higher Ed')),
+    tier1 INTEGER NOT NULL CHECK (tier1 IN (0,1)) DEFAULT 0,
     notes TEXT,
     created_date TEXT DEFAULT CURRENT_DATE
 );
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS contacts (
 CREATE TABLE IF NOT EXISTS interactions (
     id INTEGER PRIMARY KEY,
     contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
-    interaction_type TEXT NOT NULL CHECK (interaction_type IN ('Outreach Established', 'Informational Interview', 'Referral Received', 'Coffee Chat', 'Reconnect')) DEFAULT 'Outreach Established',
+    interaction_type TEXT NOT NULL CHECK (interaction_type IN ('Outreach Established', 'Follow-up', 'Informational Interview', 'Referral Received', 'Coffee Chat', 'Reconnect')) DEFAULT 'Outreach Established',
     notes TEXT,
     date TEXT NOT NULL
 );
@@ -60,6 +60,6 @@ CREATE TABLE IF NOT EXISTS applications (
 );
 
 /* Create indexes on foreign keys to improve query performance. */
-CREATE INDEX idx_org_id ON contacts (org_id);
-CREATE INDEX idx_contact_id ON interactions (contact_id);
-CREATE INDEX idx_referral_contact_id ON applications (referral_contact_id);
+CREATE INDEX IF NOT EXISTS idx_org_id ON contacts (org_id);
+CREATE INDEX IF NOT EXISTS idx_contact_id ON interactions (contact_id);
+CREATE INDEX IF NOT EXISTS idx_referral_contact_id ON applications (referral_contact_id);

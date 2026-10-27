@@ -33,8 +33,8 @@ def test_add_org_post(seeded_client):
                                       'name': 'Data Policy Center',
                                       'careers_url': 'https://www.dpc.org/careers',
                                       'category': 'Research & Policy',
-                                      # lamp_list is stored as an integer 0,1
-                                      'lamp_list': '0',
+                                      # tier1 is stored as an integer 0,1
+                                      'tier1': '0',
                                       'notes': ''
                                   })
     assert response.status_code == 302
@@ -70,7 +70,7 @@ def test_edit_org(seeded_client):
                                   data = {
                                       'careers_url': 'civtech.org',
                                       'category': 'Civic Tech',
-                                      'lamp_list': '1',
+                                      'tier1': '1',
                                       'notes': ''
                                   })
     assert response.status_code == 302

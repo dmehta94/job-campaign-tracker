@@ -18,10 +18,11 @@
 <h2>Log Interaction</h2>
 <form action="/contacts/{{ contact.id }}/interact" method="post">
     <label>Date</label>
-    <input type="date" name="date">
+    <input type="date" name="date" value="{{ today }}" required>
     <label>Interaction Type</label>
     <select name="interaction_type">
         <option value="Outreach Established">Outreach Established</option>
+        <option value="Follow-up">Follow-up</option>
         <option value="Informational Interview">Informational Interview</option>
         <option value="Referral Received">Referral Received</option>
         <option value="Coffee Chat">Coffee Chat</option>
