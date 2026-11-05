@@ -17,6 +17,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.email_import import run
+from app.stale import upgrade_database
 from config import config
 
 
@@ -30,6 +31,9 @@ def main() -> None:
     db_path = config["default"].DATABASE_URI
     if not db_path or not os.path.exists(db_path):
         sys.exit(f"Database not found at {db_path!r}. Run this from the project root with your .env in place.")
+    backup = None if args.dry_run else upgrade_database(db_path)
+    if backup:
+        print(f"Database upgraded for 'Rejected (No Response)'; backup at {backup}")
     conn = sqlite3.connect(db_path)
     print(f"{datetime.now():%Y-%m-%d %H:%M} checking email")
     try:

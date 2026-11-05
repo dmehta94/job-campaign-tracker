@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS interactions (
 
 /* Stores applications being tracked in the job search.
    referral_contact_id links an application to a referring contact where applicable.
+   'Rejected (No Response)' is set automatically when an application gets no reply
+   within three months of being submitted (app/stale.py).
 */
 CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY, 
@@ -53,7 +55,7 @@ CREATE TABLE IF NOT EXISTS applications (
     role_title TEXT NOT NULL, 
     job_url TEXT,
     date_applied TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('Applied', 'ATS Screened', 'Recruiter Screened', 'Technical Screened', 'Interviewed', 'Offered', 'Accepted', 'Rejected by Org', 'Rejected Offer')) DEFAULT 'Applied',
+    status TEXT NOT NULL CHECK (status IN ('Applied', 'ATS Screened', 'Recruiter Screened', 'Technical Screened', 'Interviewed', 'Offered', 'Accepted', 'Rejected by Org', 'Rejected (No Response)', 'Rejected Offer')) DEFAULT 'Applied',
     referral_contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
     follow_up_date TEXT,
     notes TEXT

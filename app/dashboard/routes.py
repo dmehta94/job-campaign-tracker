@@ -5,6 +5,7 @@ from flask import render_template, redirect, url_for, flash
 from . import dashboard_bp
 from ..database import get_db
 from .. import email_import
+from ..stale import close_unanswered
 
 # After a failed automatic check (offline, wrong password), wait this long before trying again,
 # so the dashboard doesn't stall on every page load.
@@ -27,7 +28,7 @@ def _auto_check_email(db) -> None:
               "It will try again later, or use the Check email button.")
         return
     if changes:
-        flash("From your email: " + "; ".join(changes))
+        flash("Updated from your email: " + "; ".join(changes))
 
 # Weekly quota: a small fixed number of outgoing messages instead of application volume.
 WEEKLY_QUOTA = {'Outreach Established': 2, 'Follow-up': 1}
@@ -41,6 +42,9 @@ def index():
     """
     db = get_db()
     _auto_check_email(db)
+    closed = close_unanswered(db)
+    if closed:
+        flash("Closed with no reply after three months: " + "; ".join(closed))
 
     num_apps = db.execute(
         "SELECT COUNT(*) FROM applications"
@@ -206,7 +210,7 @@ def check_email():
         flash(f"Couldn't check email ({type(exc).__name__}). Check your internet connection and app password.")
     else:
         if changes:
-            flash("From your email: " + "; ".join(changes))
+            flash("Updated from your email: " + "; ".join(changes))
         else:
             flash("Checked email: nothing new.")
     return redirect(url_for('dashboard.index'))

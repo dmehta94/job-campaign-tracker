@@ -33,6 +33,8 @@
         <option value="Accepted" {% if application.status=='Accepted' %}selected{% endif %}>Accepted</option>
         <option value="Rejected by Org" {% if application.status=='Rejected by Org' %}selected{% endif %}>Rejected by
             Org</option>
+        <option value="Rejected (No Response)" {% if application.status=='Rejected (No Response)' %}selected{% endif %}>
+            Rejected (No Response)</option>
         <option value="Rejected Offer" {% if application.status=='Rejected Offer' %}selected{% endif %}>Rejected Offer
         </option>
     </select>

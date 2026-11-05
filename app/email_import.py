@@ -6,6 +6,8 @@ is marked as read), works out the organization and role, and:
     - adds an application (status Applied, follow-up in 10 days) for each new confirmation
     - marks the matching application "Rejected by Org" for each rejection, adding the
       application first if it was never logged
+    - then marks applications with no reply after three months "Rejected (No Response)"
+      (see app/stale.py)
 
 Each email is handled once: its Message-ID is recorded in the email_imports table. Each successful
 check is recorded in email_check_log, so the next check can look back far enough to cover any gap
@@ -24,6 +26,8 @@ from datetime import date, datetime, timedelta
 from email.header import decode_header, make_header
 from email.policy import default as default_policy
 from email.utils import parseaddr, parsedate_to_datetime
+
+from .stale import close_unanswered
 
 FOLLOW_UP_DAYS = 10
 DEFAULT_DAYS = 14          # how far back a check looks when it ran recently
@@ -230,15 +234,25 @@ def _find_org(db: sqlite3.Connection, name: str):
     return None
 
 
-def _find_application(db: sqlite3.Connection, org_id: int, role: str | None):
+CLOSED = ("Rejected by Org", "Rejected (No Response)", "Rejected Offer", "Accepted")
+
+
+def _find_application(db: sqlite3.Connection, org_id: int, role: str | None, kind: str = "rejection"):
+    """The logged application an email refers to, as (id, status), or None.
+
+    A confirmation only matches an application that is still open, so applying to the same role
+    again in a later cycle logs a new application. A rejection can also match one already closed
+    as 'Rejected (No Response)', since the reply replaces that guess."""
     rows = db.execute("SELECT id, role_title, status FROM applications WHERE org_id = ? ORDER BY date_applied DESC",
                       (org_id,)).fetchall()
+    closed = CLOSED if kind == "confirmation" else tuple(s for s in CLOSED if s != "Rejected (No Response)")
+    candidates = [r for r in rows if not (kind == "confirmation" and r[2] in closed)]
     if role:
-        for app_id, title, status in rows:
+        for app_id, title, status in candidates:
             if _words(title) == _words(role) or _words(role) <= _words(title) or _words(title) <= _words(role):
                 return app_id, status
     # Without a role, a single open application at that org is the one meant.
-    open_rows = [r for r in rows if r[2] not in ("Rejected by Org", "Rejected Offer", "Accepted")]
+    open_rows = [r for r in candidates if r[2] not in closed]
     if not role and len(open_rows) == 1:
         return open_rows[0][0], open_rows[0][2]
     return None
@@ -264,7 +278,7 @@ def apply_messages(db: sqlite3.Connection, messages: list[Message], dry_run: boo
                 if not dry_run:
                     org_id = db.execute("INSERT INTO orgs (name, notes) VALUES (?, ?)",
                                         (org_name, f"Added from an application email on {msg.sent}.")).lastrowid
-            found = _find_application(db, org_id, role) if org_id else None
+            found = _find_application(db, org_id, role, kind) if org_id else None
             if kind == "confirmation" and not found:
                 changes.append(f"Applied: {org_name} — {role_title} ({msg.sent})")
                 if not dry_run:
@@ -308,6 +322,7 @@ def run(db: sqlite3.Connection, days: int | None = None, dry_run: bool = False) 
     if days is None:
         days = days_to_check(db)
     changes = apply_messages(db, fetch_messages(address, password, days), dry_run=dry_run, own_address=address)
+    changes += close_unanswered(db, dry_run=dry_run)  # after the emails, so a late reply counts first
     if not dry_run:
         record_check(db)
     return changes

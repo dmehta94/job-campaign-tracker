@@ -65,6 +65,9 @@ After that, the tracker checks on its own:
 
 Each check looks back to the day of the previous check (at least two weeks), so a stretch with the laptop off is covered by the next check. **Check email for applications** on the dashboard still runs a check on demand.
 
+**Applications With No Reply**\
+An application still marked Applied or ATS Screened three months after you submitted it is closed as **Rejected (No Response)**, and its check-in date is cleared. This happens when the dashboard opens and after each email check. If a rejection email arrives later, it replaces that status; applying to the same role again in a later cycle logs a new application. Databases created before November 2026 are upgraded to allow the new status the first time the app or the email check runs, with a backup copy written first.
+
 **Run the App**
 ```bash
 python run.py

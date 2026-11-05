@@ -103,7 +103,7 @@ def test_dashboard_button_reports_changes(app, client, monkeypatch):
     monkeypatch.setattr(ei, "run", lambda db, days=14: ["Applied: Example Labs — Data Analyst (2026-10-01)"])
     response = client.post('/check-email', follow_redirects=True)
     assert response.status_code == 200
-    assert b"From your email: Applied: Example Labs" in response.data
+    assert b"Updated from your email: Applied: Example Labs" in response.data
 
 
 def test_dashboard_button_explains_missing_setup(app, client, monkeypatch):
@@ -162,7 +162,7 @@ def test_dashboard_checks_email_on_its_own(client, monkeypatch):
     monkeypatch.setattr(ei, "check_due", lambda db: True)
     monkeypatch.setattr(ei, "run", lambda db, **kw: ["Applied: Example Labs — Data Analyst (2026-11-04)"])
     page = client.get("/").get_data(as_text=True)
-    assert "From your email: Applied: Example Labs" in page
+    assert "Updated from your email: Applied: Example Labs" in page
 
 
 def test_dashboard_auto_check_failure_does_not_break_page(client, monkeypatch):
