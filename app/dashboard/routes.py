@@ -1,8 +1,34 @@
 """Populate the dashboard with summary metrics and activity tables."""
+import time
+
 from flask import render_template, redirect, url_for, flash
 from . import dashboard_bp
 from ..database import get_db
 from .. import email_import
+from ..stale import close_unanswered
+
+# After a failed automatic check (offline, wrong password), wait this long before trying again,
+# so the dashboard doesn't stall on every page load.
+RETRY_AFTER_FAILURE_SECONDS = 60 * 60
+_last_failed_auto_check = 0.0
+
+
+def _auto_check_email(db) -> None:
+    """Check email when the dashboard opens, if the last successful check is more than 12 hours old."""
+    global _last_failed_auto_check
+    if time.time() - _last_failed_auto_check < RETRY_AFTER_FAILURE_SECONDS:
+        return
+    if not email_import.check_due(db):
+        return
+    try:
+        changes = email_import.run(db)
+    except Exception as exc:  # network or login problems: note it and carry on with the dashboard
+        _last_failed_auto_check = time.time()
+        flash(f"Couldn't check email automatically ({type(exc).__name__}). "
+              "It will try again later, or use the Check email button.")
+        return
+    if changes:
+        flash("Updated from your email: " + "; ".join(changes))
 
 # Weekly quota: a small fixed number of outgoing messages instead of application volume.
 WEEKLY_QUOTA = {'Outreach Established': 2, 'Follow-up': 1}
@@ -15,7 +41,11 @@ def index():
         Response: rendered dashboard template with prepopulated summary metrics and activity tables.
     """
     db = get_db()
-    
+    _auto_check_email(db)
+    closed = close_unanswered(db)
+    if closed:
+        flash("Closed with no reply after three months: " + "; ".join(closed))
+
     num_apps = db.execute(
         "SELECT COUNT(*) FROM applications"
     ).fetchone()[0]
@@ -171,16 +201,16 @@ def index():
 
 @dashboard_bp.route('/check-email', methods=['POST'])
 def check_email():
-    """Log applications and rejections from the last two weeks of email, then return to the dashboard."""
+    """Log applications and rejections from recent email (at least two weeks), then return to the dashboard."""
     try:
-        changes = email_import.run(get_db(), days=14)
+        changes = email_import.run(get_db())
     except RuntimeError as exc:
         flash(str(exc))
     except Exception as exc:  # network or login problems: say so instead of showing an error page
         flash(f"Couldn't check email ({type(exc).__name__}). Check your internet connection and app password.")
     else:
         if changes:
-            flash("From your email: " + "; ".join(changes))
+            flash("Updated from your email: " + "; ".join(changes))
         else:
             flash("Checked email: nothing new.")
     return redirect(url_for('dashboard.index'))
