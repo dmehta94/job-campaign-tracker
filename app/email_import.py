@@ -7,7 +7,9 @@ is marked as read), works out the organization and role, and:
     - marks the matching application "Rejected by Org" for each rejection, adding the
       application first if it was never logged
 
-Each email is handled once: its Message-ID is recorded in the email_imports table.
+Each email is handled once: its Message-ID is recorded in the email_imports table. Each successful
+check is recorded in email_check_log, so the next check can look back far enough to cover any gap
+(for example, a week with the laptop off) without you choosing how many days to search.
 
 Needs GMAIL_ADDRESS and GMAIL_APP_PASSWORD in .env (a Gmail app password, from Google
 Account > Security > 2-Step Verification > App passwords). Everything stays on this computer.
@@ -24,6 +26,9 @@ from email.policy import default as default_policy
 from email.utils import parseaddr, parsedate_to_datetime
 
 FOLLOW_UP_DAYS = 10
+DEFAULT_DAYS = 14          # how far back a check looks when it ran recently
+MAX_DAYS = 400             # cap for catch-up searches
+AUTO_CHECK_HOURS = 12      # the dashboard checks on its own when the last check is older than this
 
 # Gmail search for candidate emails; the classifier below makes the final call.
 GMAIL_QUERY = ('subject:(application OR applying OR applied OR candidacy OR "your interest") '
@@ -173,6 +178,42 @@ def fetch_messages(address: str, password: str, days: int = 14) -> list[Message]
 
 def _ensure_table(db: sqlite3.Connection) -> None:
     db.execute("CREATE TABLE IF NOT EXISTS email_imports (message_id TEXT PRIMARY KEY, processed_date TEXT)")
+    db.execute("CREATE TABLE IF NOT EXISTS email_check_log (checked_at TEXT NOT NULL)")
+
+
+def last_checked(db: sqlite3.Connection) -> datetime | None:
+    """When email was last checked successfully, or None if never."""
+    _ensure_table(db)
+    row = db.execute("SELECT max(checked_at) FROM email_check_log").fetchone()
+    return datetime.fromisoformat(row[0]) if row and row[0] else None
+
+
+def days_to_check(db: sqlite3.Connection, today: date | None = None) -> int:
+    """Two weeks, or back to the day of the last check if that was longer ago (capped at MAX_DAYS)."""
+    today = today or date.today()
+    last = last_checked(db)
+    if last is None:
+        return DEFAULT_DAYS
+    return min(MAX_DAYS, max(DEFAULT_DAYS, (today - last.date()).days + 1))
+
+
+def record_check(db: sqlite3.Connection, when: datetime | None = None) -> None:
+    _ensure_table(db)
+    db.execute("INSERT INTO email_check_log (checked_at) VALUES (?)",
+               ((when or datetime.now()).isoformat(timespec="seconds"),))
+    db.commit()
+
+
+def credentials_set() -> bool:
+    return bool(os.environ.get("GMAIL_ADDRESS") and os.environ.get("GMAIL_APP_PASSWORD"))
+
+
+def check_due(db: sqlite3.Connection, now: datetime | None = None, hours: int = AUTO_CHECK_HOURS) -> bool:
+    """True when the app should check email on its own: credentials are set and the last check is old."""
+    if not credentials_set():
+        return False
+    last = last_checked(db)
+    return last is None or (now or datetime.now()) - last >= timedelta(hours=hours)
 
 
 def _find_org(db: sqlite3.Connection, name: str):
@@ -258,8 +299,15 @@ def apply_messages(db: sqlite3.Connection, messages: list[Message], dry_run: boo
     return changes
 
 
-def run(db: sqlite3.Connection, days: int = 14, dry_run: bool = False) -> list[str]:
+def run(db: sqlite3.Connection, days: int | None = None, dry_run: bool = False) -> list[str]:
+    """Check email and log what it shows. With days=None, look back far enough to cover the gap
+    since the last check (at least two weeks)."""
     address, password = os.environ.get("GMAIL_ADDRESS"), os.environ.get("GMAIL_APP_PASSWORD")
     if not address or not password:
         raise RuntimeError("Add GMAIL_ADDRESS and GMAIL_APP_PASSWORD to your .env to check email.")
-    return apply_messages(db, fetch_messages(address, password, days), dry_run=dry_run, own_address=address)
+    if days is None:
+        days = days_to_check(db)
+    changes = apply_messages(db, fetch_messages(address, password, days), dry_run=dry_run, own_address=address)
+    if not dry_run:
+        record_check(db)
+    return changes
