@@ -43,17 +43,20 @@ REJECTION = re.compile(
     r"(?:won't|will not|unable to|not be able to) (?:be )?(?:move|moving|proceed|proceeding)(?: you)? forward|"
     r"decided to (?:move forward|proceed|pursue|go) with (?:another|other)|"
     r"no longer (?:being )?(?:considered|under consideration)|position has been filled|"
+    r"(?:have|has) (?:just |now |already )?filled (?:the|this) (?:role|position)|"
     r"(?:were|was|have) not (?:been )?selected|not a match at this time)", re.I)
 CONFIRMATION = re.compile(
     r"(thank you for (?:applying|your (?:recent )?application|submitting)|thanks for applying|"
     r"(?:we(?:'ve| have)|has been) received(?: your application)?|application (?:received|confirmation|submitted)|"
-    r"your application (?:to|for|has been|was) (?:sent|received|submitted|successfully)|we received your application)",
+    r"your application (?:to|for|has been|was) (?:sent|received|submitted|successfully)|"
+    r"we(?:'ve| have)? received your\b[^.\n]{0,60}?application|your application is in|"
+    r"thank you for your interest in (?:employment|working|joining)\b)",
     re.I)
 NOT_JOBS = re.compile(r"(security code|verification code|verify your|incomplete (?:job )?application|"
                       r"loan|credit|mortgage|apartment|lease|rental|visa application|passport|"
                       r"grant application|scholarship|admissions?|financial aid)", re.I)
 JOB_CONTEXT = re.compile(r"\b(position|role|opening|candidacy|candidate|requisition|hiring team|recruit\w*|"
-                         r"talent acquisition|job)\b", re.I)
+                         r"talent acquisition|job|fellowship)\b", re.I)
 
 _SUBJECT_PATTERNS = [
     # "Information about your application to Civis Analytics - Applied Data Scientist (Contract)"
@@ -63,16 +66,25 @@ _SUBJECT_PATTERNS = [
     # "Thank you for applying to Recidiviz", "... at RTI International", "your application was sent to X"
     re.compile(r"(?:applying|application|interest|sent)\s+(?:to|at|with|in)\s+(?:the\s+)?(?P<org>[^-–|:!,]+?)"
                r"(?:\s*[-–|:]\s*(?P<role>.+?))?[!.]?$", re.I),
+    # "We received your Claude Corps application" (case-sensitive: the org must be capitalized)
+    re.compile(r"\b[Yy]our (?P<org>[A-Z][\w&.' ]{1,60}?) [Aa]pplication$"),
     # "Data Analyst - Zearn"
     re.compile(r"^(?P<role>[^-–|]{3,80}?)\s+[-–|]\s+(?P<org>[^-–|]{2,60})$", re.I),
 ]
 _BODY_ROLE = re.compile(
     r"(?:application|candidacy|applying|applied|interest)\s+(?:to|for|in)\s+(?:the\s+|our\s+)?"
     r"(?P<role>[A-Z][^.\n]{2,90}?)\s+(?:position|role|opening|job|posting)\b")
+_BODY_ROLE_OF = re.compile(r"\b(?:position|role) of (?P<role>[A-Z][^.(\n]{2,90}?)\s*[(.]")
 _BODY_ORG = re.compile(r"\b(?:opening|position|role) (?:at|with) (?P<org>[A-Z][\w&.' ]{1,60}?)[.,!]")
 _GENERIC_SENDER = re.compile(r"(no-?reply|do-?not-?reply|careers?|jobs?|recruit\w*|talent|hiring|team|"
                              r"greenhouse|workday|lever|icims|ashby|smartrecruiters|notifications?|hr|people)",
                              re.I)
+# Hiring-platform domains: the sender's domain names the platform, not the employer.
+_ATS_DOMAINS = re.compile(r"(greenhouse|workable|lever|ashby|icims|smartrecruiters|pageuppeople|myworkdayjobs|"
+                          r"jobvite|taleo|successfactors|bamboohr|recruitee|breezy|jazzhr|linkedin|indeed|"
+                          r"gmail|outlook|yahoo|hotmail)\.", re.I)
+# Generic subject words mistaken for an org, as in "Anthropic Fellows - Application Update".
+_NOT_ORG = re.compile(r"(?i)^(?:your )?(?:application|candidate|candidacy)?\s*(?:update|status|received)s?$")
 _GENERIC_WORDS = {"the", "of", "and", "for", "at", "inc", "llc", "co", "team", "careers", "university",
                   "college", "school", "institute", "foundation", "group", "international", "recruiting"}
 
@@ -104,7 +116,17 @@ def _clean(text: str | None) -> str:
     return re.sub(r"^(?:fwd?|re):\s*", "", text, flags=re.I)
 
 
-def extract(subject: str, body: str, sender_name: str = "") -> tuple[str | None, str | None]:
+def _org_from_domain(address: str) -> str | None:
+    """'myworkday@loyola.edu' -> 'Loyola'; None for hiring platforms and webmail."""
+    domain = (address or "").rpartition("@")[2].lower()
+    if not domain or _ATS_DOMAINS.search(domain + "."):
+        return None
+    parts = [p for p in domain.split(".") if p not in ("mail", "email", "careers", "jobs", "hr", "noreply")]
+    return parts[-2].capitalize() if len(parts) >= 2 else None
+
+
+def extract(subject: str, body: str, sender_name: str = "",
+            sender_address: str = "") -> tuple[str | None, str | None]:
     """Best guess at (organization, role) from the subject, then the body, then the sender."""
     subject = _clean(re.sub(r"^(?:fwd?|re):\s*", "", subject or "", flags=re.I))
     subject = re.sub(r"^\w+,\s+", "", subject)  # "Deval, your application was sent to X"
@@ -114,10 +136,15 @@ def extract(subject: str, body: str, sender_name: str = "") -> tuple[str | None,
         if m:
             org, role = _clean(m.group("org")), _clean(m.groupdict().get("role"))
             break
+    if org and _NOT_ORG.match(org):
+        org, role = role, None  # "Anthropic Fellows - Application Update": the other half is the org
     if org and re.fullmatch(r"(?i)(?:you|us|our team|the team)", org):
         org = None
     if role and re.search(r"(?i)\b(remote|anywhere|usa|united states|hybrid)\b|,\s*[A-Z]{2}$", role):
         role = None  # "Thank you for applying at PNNL - Anywhere, USA": that's a location
+    if not role:
+        m = _BODY_ROLE_OF.search(body or "")
+        role = _clean(m.group("role")) if m else None
     if not role:
         m = _BODY_ROLE.search(body or "")
         role = _clean(m.group("role")) if m else None
@@ -126,6 +153,10 @@ def extract(subject: str, body: str, sender_name: str = "") -> tuple[str | None,
         org = _clean(m.group("org")) if m else None
     if not org and sender_name and not _GENERIC_SENDER.search(sender_name):
         org = _clean(sender_name)
+    if not org:
+        org = _org_from_domain(sender_address)
+    if role:
+        role = re.sub(r"(?i)\s*[-–(]\s*remote\)?$", "", role)  # "Analyst - REMOTE"
     return org or None, role or None
 
 
@@ -164,7 +195,9 @@ def fetch_messages(address: str, password: str, days: int = 14) -> list[Message]
         if status != "OK":
             imap.select("INBOX", readonly=True)
         query = f"{GMAIL_QUERY} newer_than:{int(days)}d"
-        status, data = imap.search(None, "X-GM-RAW", f'"{query}"')
+        # The query contains double quotes ("your interest"), so escape them for the IMAP quoted string.
+        quoted = '"' + query.replace('\\', '\\\\').replace('"', '\\"') + '"'
+        status, data = imap.search(None, "X-GM-RAW", quoted)
         ids = data[0].split() if status == "OK" and data and data[0] else []
         messages = []
         for msg_id in ids:
@@ -269,7 +302,7 @@ def apply_messages(db: sqlite3.Connection, messages: list[Message], dry_run: boo
             continue
         mine = own_address and msg.sender_address.lower() == own_address.lower()
         kind = None if mine else classify(msg.subject, msg.body)  # skip emails you sent yourself
-        org_name, role = extract(msg.subject, msg.body, msg.sender_name) if kind else (None, None)
+        org_name, role = extract(msg.subject, msg.body, msg.sender_name, msg.sender_address) if kind else (None, None)
         if kind and org_name:
             role_title = role or "Role not stated in email"
             org_id = _find_org(db, org_name)

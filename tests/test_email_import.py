@@ -179,3 +179,28 @@ def test_dashboard_auto_check_failure_does_not_break_page(client, monkeypatch):
     monkeypatch.setattr(ei, "run", lambda db, **kw: calls.append(1) or [])
     client.get("/")
     assert calls == []  # waits before retrying after a failure
+
+
+@pytest.mark.parametrize("subject,body,name,address,kind,org,role", [
+    ("Your Application to Example University",
+     "Thank you for your interest in employment at Example University for the position of "
+     "Data Analyst II (Requisition No: 1). This notification is automated.",
+     "", "noreply-1@mail.pageuppeople.com", "confirmation", "Example University", "Data Analyst II"),
+    ("Thank you for your application!",
+     "Thank you for your interest in the Research Analyst - REMOTE position. We will review it.",
+     "", "myworkday@example.edu", "confirmation", "Example", "Research Analyst"),
+    ("We received your Example Corps application",
+     "Thanks, your application is in. We'll update you at each stage of the fellowship.",
+     "", "no-reply@us.greenhouse-mail.io", "confirmation", "Example Corps", None),
+    ("Example Fellows - Application Update",
+     "Unfortunately we are not able to move forward with your candidacy.",
+     "", "no-reply@ashbyhq.com", "rejection", "Example Fellows", None),
+])
+def test_platform_confirmations(subject, body, name, address, kind, org, role):
+    assert ei.classify(subject, body) == kind
+    assert ei.extract(subject, body, name, address) == (org, role)
+
+
+def test_filled_role_is_a_rejection():
+    body = "Thank you for your interest in joining Example as a Data Analyst. We have just filled the role."
+    assert ei.classify("Data Analyst - Example", body) == "rejection"
