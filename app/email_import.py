@@ -17,6 +17,7 @@ Needs GMAIL_ADDRESS and GMAIL_APP_PASSWORD in .env (a Gmail app password, from G
 Account > Security > 2-Step Verification > App passwords). Everything stays on this computer.
 """
 import email
+import html
 import imaplib
 import os
 import re
@@ -176,7 +177,7 @@ def parse_raw(raw: bytes) -> Message:
     part = msg.get_body(preferencelist=("plain", "html"))
     body = part.get_content() if part is not None else ""
     if part is not None and part.get_content_type() == "text/html":
-        body = re.sub(r"<[^>]+>", " ", body)
+        body = html.unescape(re.sub(r"<[^>]+>", " ", body))  # "&amp;" -> "&"
     name, address = parseaddr(_decode(msg.get("From")))
     try:
         sent = parsedate_to_datetime(msg.get("Date")).date()
