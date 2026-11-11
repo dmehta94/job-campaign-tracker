@@ -6,6 +6,7 @@ from .contacts import contacts_bp
 from .applications import applications_bp
 from .orgs import orgs_bp
 from .database import close_db
+from .stale import upgrade_database
 
 def create_app(config_name='development') -> Flask:
     """Creates the flask app and registers all blueprints.
@@ -19,6 +20,8 @@ def create_app(config_name='development') -> Flask:
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     app.config['CONFIG_NAME'] = config_name
+    if config_name != 'testing':
+        upgrade_database(app.config.get('DATABASE_URI'))  # adds 'Rejected (No Response)' to older databases
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(contacts_bp)
     app.register_blueprint(applications_bp)

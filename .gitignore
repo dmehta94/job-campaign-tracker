@@ -208,3 +208,5 @@ __marimo__/
 
 # SQLite
 *.db
+# Email check logs
+logs/

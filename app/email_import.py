@@ -6,8 +6,12 @@ is marked as read), works out the organization and role, and:
     - adds an application (status Applied, follow-up in 10 days) for each new confirmation
     - marks the matching application "Rejected by Org" for each rejection, adding the
       application first if it was never logged
+    - then marks applications with no reply after three months "Rejected (No Response)"
+      (see app/stale.py)
 
-Each email is handled once: its Message-ID is recorded in the email_imports table.
+Each email is handled once: its Message-ID is recorded in the email_imports table. Each successful
+check is recorded in email_check_log, so the next check can look back far enough to cover any gap
+(for example, a week with the laptop off) without you choosing how many days to search.
 
 Needs GMAIL_ADDRESS and GMAIL_APP_PASSWORD in .env (a Gmail app password, from Google
 Account > Security > 2-Step Verification > App passwords). Everything stays on this computer.
@@ -23,7 +27,12 @@ from email.header import decode_header, make_header
 from email.policy import default as default_policy
 from email.utils import parseaddr, parsedate_to_datetime
 
+from .stale import close_unanswered
+
 FOLLOW_UP_DAYS = 10
+DEFAULT_DAYS = 14          # how far back a check looks when it ran recently
+MAX_DAYS = 400             # cap for catch-up searches
+AUTO_CHECK_HOURS = 12      # the dashboard checks on its own when the last check is older than this
 
 # Gmail search for candidate emails; the classifier below makes the final call.
 GMAIL_QUERY = ('subject:(application OR applying OR applied OR candidacy OR "your interest") '
@@ -173,6 +182,42 @@ def fetch_messages(address: str, password: str, days: int = 14) -> list[Message]
 
 def _ensure_table(db: sqlite3.Connection) -> None:
     db.execute("CREATE TABLE IF NOT EXISTS email_imports (message_id TEXT PRIMARY KEY, processed_date TEXT)")
+    db.execute("CREATE TABLE IF NOT EXISTS email_check_log (checked_at TEXT NOT NULL)")
+
+
+def last_checked(db: sqlite3.Connection) -> datetime | None:
+    """When email was last checked successfully, or None if never."""
+    _ensure_table(db)
+    row = db.execute("SELECT max(checked_at) FROM email_check_log").fetchone()
+    return datetime.fromisoformat(row[0]) if row and row[0] else None
+
+
+def days_to_check(db: sqlite3.Connection, today: date | None = None) -> int:
+    """Two weeks, or back to the day of the last check if that was longer ago (capped at MAX_DAYS)."""
+    today = today or date.today()
+    last = last_checked(db)
+    if last is None:
+        return DEFAULT_DAYS
+    return min(MAX_DAYS, max(DEFAULT_DAYS, (today - last.date()).days + 1))
+
+
+def record_check(db: sqlite3.Connection, when: datetime | None = None) -> None:
+    _ensure_table(db)
+    db.execute("INSERT INTO email_check_log (checked_at) VALUES (?)",
+               ((when or datetime.now()).isoformat(timespec="seconds"),))
+    db.commit()
+
+
+def credentials_set() -> bool:
+    return bool(os.environ.get("GMAIL_ADDRESS") and os.environ.get("GMAIL_APP_PASSWORD"))
+
+
+def check_due(db: sqlite3.Connection, now: datetime | None = None, hours: int = AUTO_CHECK_HOURS) -> bool:
+    """True when the app should check email on its own: credentials are set and the last check is old."""
+    if not credentials_set():
+        return False
+    last = last_checked(db)
+    return last is None or (now or datetime.now()) - last >= timedelta(hours=hours)
 
 
 def _find_org(db: sqlite3.Connection, name: str):
@@ -189,15 +234,25 @@ def _find_org(db: sqlite3.Connection, name: str):
     return None
 
 
-def _find_application(db: sqlite3.Connection, org_id: int, role: str | None):
+CLOSED = ("Rejected by Org", "Rejected (No Response)", "Rejected Offer", "Accepted")
+
+
+def _find_application(db: sqlite3.Connection, org_id: int, role: str | None, kind: str = "rejection"):
+    """The logged application an email refers to, as (id, status), or None.
+
+    A confirmation only matches an application that is still open, so applying to the same role
+    again in a later cycle logs a new application. A rejection can also match one already closed
+    as 'Rejected (No Response)', since the reply replaces that guess."""
     rows = db.execute("SELECT id, role_title, status FROM applications WHERE org_id = ? ORDER BY date_applied DESC",
                       (org_id,)).fetchall()
+    closed = CLOSED if kind == "confirmation" else tuple(s for s in CLOSED if s != "Rejected (No Response)")
+    candidates = [r for r in rows if not (kind == "confirmation" and r[2] in closed)]
     if role:
-        for app_id, title, status in rows:
+        for app_id, title, status in candidates:
             if _words(title) == _words(role) or _words(role) <= _words(title) or _words(title) <= _words(role):
                 return app_id, status
     # Without a role, a single open application at that org is the one meant.
-    open_rows = [r for r in rows if r[2] not in ("Rejected by Org", "Rejected Offer", "Accepted")]
+    open_rows = [r for r in candidates if r[2] not in closed]
     if not role and len(open_rows) == 1:
         return open_rows[0][0], open_rows[0][2]
     return None
@@ -223,7 +278,7 @@ def apply_messages(db: sqlite3.Connection, messages: list[Message], dry_run: boo
                 if not dry_run:
                     org_id = db.execute("INSERT INTO orgs (name, notes) VALUES (?, ?)",
                                         (org_name, f"Added from an application email on {msg.sent}.")).lastrowid
-            found = _find_application(db, org_id, role) if org_id else None
+            found = _find_application(db, org_id, role, kind) if org_id else None
             if kind == "confirmation" and not found:
                 changes.append(f"Applied: {org_name} — {role_title} ({msg.sent})")
                 if not dry_run:
@@ -258,8 +313,16 @@ def apply_messages(db: sqlite3.Connection, messages: list[Message], dry_run: boo
     return changes
 
 
-def run(db: sqlite3.Connection, days: int = 14, dry_run: bool = False) -> list[str]:
+def run(db: sqlite3.Connection, days: int | None = None, dry_run: bool = False) -> list[str]:
+    """Check email and log what it shows. With days=None, look back far enough to cover the gap
+    since the last check (at least two weeks)."""
     address, password = os.environ.get("GMAIL_ADDRESS"), os.environ.get("GMAIL_APP_PASSWORD")
     if not address or not password:
         raise RuntimeError("Add GMAIL_ADDRESS and GMAIL_APP_PASSWORD to your .env to check email.")
-    return apply_messages(db, fetch_messages(address, password, days), dry_run=dry_run, own_address=address)
+    if days is None:
+        days = days_to_check(db)
+    changes = apply_messages(db, fetch_messages(address, password, days), dry_run=dry_run, own_address=address)
+    changes += close_unanswered(db, dry_run=dry_run)  # after the emails, so a late reply counts first
+    if not dry_run:
+        record_check(db)
+    return changes

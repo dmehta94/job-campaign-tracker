@@ -58,7 +58,15 @@ The tracker can read your "thank you for applying" and rejection emails and log 
 python scripts/import_from_gmail.py --days 400 --dry-run
 python scripts/import_from_gmail.py --days 400
 ```
-After that, click **Check email for applications** on the dashboard whenever you like; it looks at the last two weeks.
+After that, the tracker checks on its own:
+
+- **When you open the dashboard**, if the last check was more than 12 hours ago. Anything it logs shows at the top of the page.
+- **When you sign in to Windows**, if you add `scripts/check_email.bat` to your Startup folder: press Win+R, type `shell:startup`, and put a shortcut to `check_email.bat` in the folder that opens. Each run is appended to `logs/gmail_import.log`.
+
+Each check looks back to the day of the previous check (at least two weeks), so a stretch with the laptop off is covered by the next check. **Check email for applications** on the dashboard still runs a check on demand.
+
+**Applications With No Reply**\
+An application still marked Applied or ATS Screened three months after you submitted it is closed as **Rejected (No Response)**, and its check-in date is cleared. This happens when the dashboard opens and after each email check. If a rejection email arrives later, it replaces that status; applying to the same role again in a later cycle logs a new application. Databases created before November 2026 are upgraded to allow the new status the first time the app or the email check runs, with a backup copy written first.
 
 **Run the App**
 ```bash
@@ -108,6 +116,9 @@ job-campaign-tracker/\
 |   ├── dashboard.png\
 |   └── orgs.png\
 ├── scripts/\
+│   ├── check_email.bat\
+│   ├── import_from_gmail.py\
+│   ├── migrate_2026_10.py\
 │   └── seed.py\
 ├── tests/\
 ├── .env.example\
